@@ -1,8 +1,10 @@
-param(
+﻿param(
   [string]$ConfigDir = "$env:USERPROFILE\.workbuddy"
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+$OutputEncoding = [Console]::OutputEncoding
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $profileDir = Join-Path $repoRoot "ctrip-profile"
@@ -15,11 +17,11 @@ $edgeCandidates = @(
 $edgePath = $edgeCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 
 if (-not $edgePath) {
-  throw "Microsoft Edge executable was not found. Install Edge or update setup-workbuddy-mcp.ps1 with the executable path."
+  throw "未找到微软 Edge 浏览器。请先安装 Edge，或在 setup-workbuddy-mcp.ps1 中更新浏览器路径。"
 }
 
 if (-not (Test-Path -LiteralPath $nodeNpx)) {
-  throw "npx was not found at $nodeNpx. Install Node.js or update setup-workbuddy-mcp.ps1."
+  throw "未在 $nodeNpx 找到 npx。请先安装 Windows 版 Node.js，或在 setup-workbuddy-mcp.ps1 中更新路径。"
 }
 
 New-Item -ItemType Directory -Force -Path $ConfigDir, $profileDir, $browserOutputDir | Out-Null
@@ -63,12 +65,11 @@ foreach ($name in @(".mcp.json", "mcp.json")) {
   if (Test-Path -LiteralPath $path) {
     $backup = "$path.bak-$(Get-Date -Format yyyyMMddHHmmss)"
     Copy-Item -LiteralPath $path -Destination $backup -Force
-    Write-Host "Backed up existing $name to $backup"
+    Write-Host "已备份现有 $name 到 $backup"
   }
   [System.IO.File]::WriteAllText($path, $json, $utf8NoBom)
-  Write-Host "Wrote $path"
+  Write-Host "已写入 $path"
 }
 
 Write-Host ""
-Write-Host "Done. Restart WorkBuddy, then open app/index.html and complete Ctrip scan-login."
-
+Write-Host "配置完成。请完全重启 WorkBuddy，然后打开 app/index.html，完成携程扫码登录。"

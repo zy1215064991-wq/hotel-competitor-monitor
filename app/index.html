@@ -10,7 +10,7 @@
     <main class="shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">WorkBuddy Setup Kit</p>
+          <p class="eyebrow">WorkBuddy 本地部署包</p>
           <h1>酒店竞对监控配置向导</h1>
         </div>
         <div class="status-pill" id="completionStatus">0/4 已完成</div>
@@ -47,7 +47,7 @@
       <section class="panel" id="hotels" data-step="hotels">
         <div class="section-head">
           <h2>酒店识别</h2>
-          <p>输入酒店名或关键词，让 WorkBuddy 用真实浏览器去携程搜候选。用户只确认候选，不手填 URL。</p>
+          <p>输入酒店名或关键词，让 WorkBuddy 用真实浏览器去携程搜候选。用户只确认候选，不手填页面链接。</p>
         </div>
 
         <div class="grid two">
@@ -72,7 +72,7 @@
 
         <div class="paste-area">
           <h3>粘贴 WorkBuddy 返回的候选表</h3>
-          <p>建议让 WorkBuddy 输出 Markdown 表格，列为：角色、候选序号、酒店名、地址、评分、hotelId、稳定URL、匹配理由。</p>
+          <p>建议让 WorkBuddy 输出 Markdown 表格，列为：角色、候选序号、酒店名、地址、评分、hotelId、稳定链接、匹配理由。</p>
           <textarea id="candidatePaste" placeholder="把候选表粘贴到这里"></textarea>
           <button id="parseCandidates">解析候选</button>
         </div>
@@ -133,7 +133,7 @@
 
         <div class="actions">
           <button data-prev="query">上一步</button>
-          <button id="copyRunPrompt">复制 Run Once 验证提示词</button>
+          <button id="copyRunPrompt">复制单次运行验证提示词</button>
         </div>
       </section>
     </main>
@@ -142,4 +142,3 @@
     <script src="./app.js"></script>
   </body>
 </html>
-

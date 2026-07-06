@@ -1,8 +1,8 @@
-# Quick Start
+# 快速开始
 
 ## 1. 下载项目
 
-下载 ZIP 或 clone 仓库到 Windows 电脑。路径不要放在需要管理员权限的系统目录。
+下载压缩包或克隆仓库到 Windows 电脑。路径不要放在需要管理员权限的系统目录。
 
 ## 2. 配置 WorkBuddy Playwright MCP
 

@@ -1,10 +1,12 @@
-param(
+﻿param(
   [string]$ConfigDir = "$env:USERPROFILE\.workbuddy",
   [switch]$SkipMcpWrite,
   [switch]$OpenWizard
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+$OutputEncoding = [Console]::OutputEncoding
 
 $repoRoot = $PSScriptRoot
 $setupScript = Join-Path $repoRoot "scripts\setup-workbuddy-mcp.ps1"
@@ -22,11 +24,11 @@ function Test-CommandAvailable {
   $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
-Write-Host "Hotel Competitor Monitor installer"
-Write-Host "Project: $repoRoot"
-Write-Host "WorkBuddy config: $ConfigDir"
+Write-Host "酒店竞对每日监控安装脚本"
+Write-Host "项目目录：$repoRoot"
+Write-Host "WorkBuddy 配置目录：$ConfigDir"
 
-Write-Step "Checking local environment"
+Write-Step "检查本机环境"
 if ($env:OS -and $env:OS -notlike "*Windows*") {
   Write-Warning "This kit is designed for Windows WorkBuddy desktops."
 }
@@ -62,27 +64,27 @@ if (-not (Test-Path -LiteralPath $wizardPath)) {
 }
 
 if (-not $SkipMcpWrite) {
-  Write-Step "Configuring WorkBuddy Playwright MCP"
+  Write-Step "配置 WorkBuddy Playwright 浏览器连接器"
   & $setupScript -ConfigDir $ConfigDir
 } else {
-  Write-Step "Skipping MCP write because -SkipMcpWrite was provided"
+  Write-Step "已按参数要求跳过浏览器连接器写入"
 }
 
-Write-Step "Verifying WorkBuddy MCP files"
+Write-Step "验证 WorkBuddy 浏览器连接器配置"
 & $verifyScript -ConfigDir $ConfigDir
 
 if ($OpenWizard) {
-  Write-Step "Opening setup wizard"
+  Write-Step "打开本地配置向导"
   Start-Process -FilePath $wizardPath
 }
 
-Write-Step "Manual steps that remain"
-Write-Host "1. Restart WorkBuddy completely."
-Write-Host "2. In WorkBuddy, trust/enable the playwright-edge MCP server if prompted."
-Write-Host "3. Open app\index.html or rerun this installer with -OpenWizard."
-Write-Host "4. Copy the login prompt from the wizard into WorkBuddy."
-Write-Host "5. Scan-login to Ctrip with WeChat or the Ctrip app. Do not enter account passwords."
-Write-Host "6. Continue in the wizard to search and confirm the home hotel plus three competitors."
+Write-Step "仍需要人工完成的步骤"
+Write-Host "1. 完全退出并重启 WorkBuddy。"
+Write-Host "2. 如果 WorkBuddy 提示需要信任或启用 playwright-edge，请在图形界面中确认。"
+Write-Host "3. 打开 app\index.html，或使用 -OpenWizard 参数重新运行本安装脚本。"
+Write-Host "4. 从向导复制登录验证提示词到 WorkBuddy。"
+Write-Host "5. 用微信或携程应用扫码登录携程，不要输入账号密码。"
+Write-Host "6. 继续在向导里搜索并确认本店和 3 家竞对。"
 
 Write-Host ""
-Write-Host "Install script finished. It did not bypass Ctrip login, captcha, or WorkBuddy GUI trust prompts."
+Write-Host "安装脚本已结束。脚本不会绕过携程登录、验证码或 WorkBuddy 图形界面确认。"

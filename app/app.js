@@ -110,7 +110,7 @@ function bindActions() {
   $("#downloadCompetitors").addEventListener("click", () => download("competitors.md", state.generated.competitors || buildCompetitorsMarkdown()));
   $("#downloadAutomation").addEventListener("click", () => download("automation-prompt.md", state.generated.automation || buildAutomationPrompt()));
   $("#downloadDaily").addEventListener("click", () => download("daily-prompt.md", state.generated.daily || buildDailyPrompt()));
-  $("#copyRunPrompt").addEventListener("click", () => copyText(buildRunOncePrompt(), "已复制 Run Once 验证提示词"));
+  $("#copyRunPrompt").addEventListener("click", () => copyText(buildRunOncePrompt(), "已复制单次运行验证提示词"));
   $$("[data-preview]").forEach((button) => {
     button.addEventListener("click", () => {
       state.activePreview = button.dataset.preview;
@@ -152,11 +152,11 @@ ${hotelLines}
 1. 使用真实浏览器打开携程酒店搜索或携程首页。
 2. 对每个角色分别搜索，尽量返回 3 个候选。
 3. 不登录、不输入账号密码、不绕过验证码；如果出现验证码、滑块、短信验证或风控页面，停止并说明。
-4. 每个候选需要给出：角色、候选序号、酒店名、地址、评分、hotelId、稳定URL、匹配理由。
-5. 稳定URL 只保留 cityEnName/cityId/hotelId 等稳定参数，不要包含过期入住日期、tracking id 或 subStamp。
+4. 每个候选需要给出：角色、候选序号、酒店名、地址、评分、hotelId、稳定链接、匹配理由。
+5. 稳定链接只保留 cityEnName/cityId/hotelId 等稳定参数，不要包含过期入住日期、tracking id 或 subStamp。
 
 请只输出 Markdown 表格，列名严格为：
-| 角色 | 候选序号 | 酒店名 | 地址 | 评分 | hotelId | 稳定URL | 匹配理由 |`;
+| 角色 | 候选序号 | 酒店名 | 地址 | 评分 | hotelId | 稳定链接 | 匹配理由 |`;
 }
 
 function parseCandidateTable(text) {
@@ -224,7 +224,7 @@ function buildCompetitorsMarkdown() {
     "",
     "查询口径由 automation-prompt.md 的默认运行口径控制；临时查询可在 WorkBuddy 对话框里自然语言覆盖。",
     "",
-    "| 角色 | 酒店名 | 携程页面URL | 目标房型 | 查询口径 |",
+    "| 角色 | 酒店名 | 携程页面链接 | 目标房型 | 查询口径 |",
     "| --- | --- | --- | --- | --- |"
   ];
 
@@ -243,7 +243,7 @@ function buildAutomationPrompt() {
   const q = state.query;
   return `# 酒店竞对每日监控 Automation Prompt
 
-请用 WorkBuddy 内置模型执行本任务，不调用任何第三方模型 API，不读取或要求任何 API Key。优先使用消耗最低的内置模型。
+请用 WorkBuddy 内置模型执行本任务，不调用任何第三方模型接口，不读取或要求任何接口密钥。优先使用消耗最低的内置模型。
 
 ## 本地文件
 
@@ -303,7 +303,7 @@ function buildAutomationPrompt() {
 4. 读取 competitors.md，解析本店和 3 家竞对。
 5. 执行登录态自检。
 6. 用 playwright-edge 逐家打开携程详情页。
-7. URL 或页面条件必须设置为本次入住日期、本次离店日期、房间数、成人数、儿童数、儿童年龄。
+7. 页面链接或页面查询条件必须设置为本次入住日期、本次离店日期、房间数、成人数、儿童数、儿童年龄。
 8. 页面加载后必须检查可见条件是否与本次实际查询口径一致；不一致时先改成一致再抓价。
 9. 抓取酒店名、实际查询口径、目标房型可售状态、目标房型或相近房型价格、早餐、取消政策、房态和最新点评。
 10. 任意一家查询口径不一致时，不要输出调价/跟价建议，只输出“查询口径未达成，需要重跑”。
@@ -320,7 +320,7 @@ function buildDailyPrompt() {
 
 ## 输入数据
 
-- 本店和 3 家竞对的酒店名、携程页面 URL、目标房型、查询口径
+- 本店和 3 家竞对的酒店名、携程页面链接、目标房型、查询口径
 - 本次实际查询口径：入住日期、离店日期、房间数、成人数、儿童数、目标房型、点评条数、参数来源
 - 每家酒店在统一口径下抓到的价格、可售房型、房态/早餐/取消政策等可见信息
 - 每家酒店最新点评内容、评分、点评时间
@@ -450,4 +450,3 @@ function escapeHtml(value) {
 }
 
 document.addEventListener("DOMContentLoaded", init);
-

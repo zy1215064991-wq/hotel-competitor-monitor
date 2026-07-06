@@ -1,8 +1,10 @@
-param(
+﻿param(
   [string]$ConfigDir = "$env:USERPROFILE\.workbuddy"
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+$OutputEncoding = [Console]::OutputEncoding
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $profileDir = Join-Path $repoRoot "ctrip-profile"
@@ -11,13 +13,13 @@ $paths = @(
   (Join-Path $ConfigDir "mcp.json")
 )
 
-Write-Host "WorkBuddy config directory: $ConfigDir"
-Write-Host "Ctrip profile directory: $profileDir"
+Write-Host "WorkBuddy 配置目录：$ConfigDir"
+Write-Host "携程登录态目录：$profileDir"
 Write-Host ""
 
 foreach ($path in $paths) {
   if (-not (Test-Path -LiteralPath $path)) {
-    Write-Host "[missing] $path"
+    Write-Host "[缺失] $path"
     continue
   }
 
@@ -27,22 +29,22 @@ foreach ($path in $paths) {
   $json = $text | ConvertFrom-Json
   $hasServer = $null -ne $json.mcpServers.'playwright-edge'
 
-  Write-Host "[ok] $path"
-  Write-Host "  JSON valid: yes"
-  Write-Host "  UTF-8 BOM: $hasBom"
+  Write-Host "[正常] $path"
+  Write-Host "  JSON 合法：是"
+  Write-Host "  UTF-8 BOM：$hasBom"
   Write-Host "  playwright-edge: $hasServer"
 }
 
 if (-not (Test-Path -LiteralPath $profileDir)) {
   New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
-  Write-Host "[created] $profileDir"
+  Write-Host "[已创建] $profileDir"
 } else {
-  Write-Host "[ok] profile directory exists"
+  Write-Host "[正常] 登录态目录已存在"
 }
 
 Write-Host ""
-Write-Host "Next steps:"
-Write-Host "1. Restart WorkBuddy completely."
-Write-Host "2. Open app/index.html."
-Write-Host "3. Copy the login verification prompt into WorkBuddy."
-Write-Host "4. Scan-login to Ctrip and verify room prices are visible."
+Write-Host "下一步："
+Write-Host "1. 完全退出并重启 WorkBuddy。"
+Write-Host "2. 打开 app/index.html。"
+Write-Host "3. 把登录验证提示词复制到 WorkBuddy。"
+Write-Host "4. 扫码登录携程，并确认酒店房价可见。"
