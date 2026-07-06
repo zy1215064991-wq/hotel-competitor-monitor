@@ -24,6 +24,7 @@
 - 默认目标房型：{{ROOM_TYPE}}
 - 点评条数：{{REVIEW_COUNT}}
 - 默认定时：{{SCHEDULE_TIME}}
+- 推送方式：{{PUSH_MODE}}
 - 价格口径：携程国内站页面可见到手价/含税费说明
 
 ## 对话框本次覆盖参数
@@ -52,4 +53,18 @@
 10. 任意一家查询口径不一致时，不要输出调价/跟价建议，只输出“查询口径未达成，需要重跑”。
 11. 读取 daily-prompt.md 生成红黄绿日报。
 12. 保存 reports/YYYY-MM-DD-raw.md 和 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-13. 最终回复必须包含日报全文、保存路径、抓取状态、本次实际查询口径和参数来源。
+13. 执行推送策略。
+14. 最终回复必须包含日报全文、保存路径、抓取状态、本次实际查询口径、参数来源和推送状态。
+
+## 推送策略
+
+- 如果推送方式是“只保存本地”：不要推送，只保存 reports 文件，并在最终回复里写“推送未配置”。
+- 如果推送方式是“WorkBuddy ClawBot”：最终回复必须包含完整日报全文，让 WorkBuddy Automation / ClawBot 推送最终回复；如果桌面端没有配置 ClawBot，写“ClawBot 推送未配置”。
+- 如果推送方式是“企业微信群机器人”：保存日报后，检查环境变量 HOTEL_MONITOR_WECOM_WEBHOOK。
+- 企业微信群机器人已配置时，运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -ReportPath .\reports\YYYY-MM-DD-hotel-competitor-daily.md
+```
+
+- 企业微信群机器人未配置时，不要伪造推送成功；最终回复写“企业微信推送未配置：缺少 HOTEL_MONITOR_WECOM_WEBHOOK”。

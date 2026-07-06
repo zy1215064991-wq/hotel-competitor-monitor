@@ -62,6 +62,8 @@ app/index.html
 - 模型：低积分内置模型
 - Prompt：粘贴 `automation-prompt.md`
 - 定时：每天 07:30
-- 推送：按需选择 ClawBot 或企业微信
+- 推送：按需选择 ClawBot、企业微信群机器人或只保存本地
 
 先点 `Run once` 验证。
+
+详细推送配置见 `docs/push-setup.md`。

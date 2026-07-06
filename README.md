@@ -103,7 +103,18 @@ skill/                     可选的 WorkBuddy/Codex skill 说明
 
 ## 推送和定时
 
-WorkBuddy Automation 定时任务、ClawBot 或企业微信推送如果只能在桌面端 GUI 中配置，本项目不会假装自动完成。请按 `docs/clawbot-setup.md` 和向导里的提示手动设置。
+WorkBuddy Automation 定时任务、ClawBot 或企业微信推送如果只能在桌面端 GUI 中配置，本项目不会假装自动完成。
+
+推送设置请看：
+
+- `docs/push-setup.md`：完整推送说明，包含个人微信 ClawBot 和企业微信群机器人。
+- `docs/clawbot-setup.md`：ClawBot 图形界面绑定步骤。
+
+企业微信群机器人可以用环境变量自动推送：
+
+```powershell
+setx HOTEL_MONITOR_WECOM_WEBHOOK "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=替换成你的key"
+```
 
 建议默认定时：
 

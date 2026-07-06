@@ -1,5 +1,7 @@
 # ClawBot / 微信推送设置
 
+更完整的推送设置，包括企业微信群机器人 webhook，请看 `docs/push-setup.md`。
+
 WorkBuddy 的推送需要在桌面端 UI 中配置，不能由脚本代替你扫码或授权。
 
 ## 微信 ClawBot
@@ -21,4 +23,3 @@ WorkBuddy 的推送需要在桌面端 UI 中配置，不能由脚本代替你扫
 创建酒店竞对每日监控 Automation 时，通知方式选择 ClawBot、微信或企业微信。推送内容选择最终回复或任务完成摘要。
 
 如果还没配置推送，自动化仍会把日报保存到本地 `reports/`。
-
