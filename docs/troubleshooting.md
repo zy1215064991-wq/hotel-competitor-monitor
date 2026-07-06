@@ -1,6 +1,6 @@
-# Troubleshooting
+# 排障说明
 
-## WorkBuddy 找不到 playwright-edge
+## WorkBuddy 找不到 playwright-browser
 
 运行：
 
@@ -14,18 +14,33 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-workbuddy.p
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-workbuddy-mcp.ps1
 ```
 
-然后重启 WorkBuddy。
+然后完全退出并重启 WorkBuddy。
 
-## Edge 找不到
+## 浏览器找不到
 
-确认 Microsoft Edge 安装在以下路径之一：
+安装脚本默认使用 `auto` 模式：优先使用 Chrome，未安装 Chrome 时回退 Edge。
+
+常见 Chrome 路径：
+
+```text
+C:\Program Files\Google\Chrome\Application\chrome.exe
+C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
+C:\Users\<用户名>\AppData\Local\Google\Chrome\Application\chrome.exe
+```
+
+常见 Edge 路径：
 
 ```text
 C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
 C:\Program Files\Microsoft\Edge\Application\msedge.exe
 ```
 
-如果安装在其他路径，修改 `scripts/setup-workbuddy-mcp.ps1` 里的 `$edgeCandidates`。
+如果想强制使用某个浏览器：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Browser chrome
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Browser edge
+```
 
 ## 携程显示验证码、滑块或短信验证
 
@@ -34,6 +49,8 @@ C:\Program Files\Microsoft\Edge\Application\msedge.exe
 ## 价格显示“解锁优惠”
 
 说明当前携程会话没有可用登录态。重新扫码登录。
+
+注意：Chrome 和 Edge 使用不同的登录态目录。如果从 Edge 切换到 Chrome，首次运行时需要重新扫码登录一次。
 
 ## 酒店候选不准确
 
@@ -52,4 +69,3 @@ C:\Program Files\Microsoft\Edge\Application\msedge.exe
 ```text
 这次查 2成人，双床房
 ```
-

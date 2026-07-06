@@ -4,9 +4,9 @@
 
 ## 硬约束
 
-- 全链路只使用国内可访问服务：WorkBuddy、携程国内站、本机 Microsoft Edge。
+- 全链路只使用国内可访问服务：WorkBuddy、携程国内站、本机 Chrome 或 Edge 浏览器。
 - 使用 WorkBuddy 内置模型，不配置第三方模型接口密钥，不创建或修改 `models.json`。
-- 携程页面必须用 `playwright-edge` 真实浏览器 MCP，不要使用 fetch、WebFetch、curl、requests 或任何纯 HTTP 抓取。
+- 携程页面必须用 `playwright-browser` 真实浏览器 MCP，不要使用 fetch、WebFetch、curl、requests 或任何纯 HTTP 抓取。
 - 不绕过登录墙、验证码、滑块、短信验证或风控页面。
 - 需要用户扫码登录、WorkBuddy GUI Trust、定时任务、ClawBot 推送配置时，停下来让我手动操作。
 
@@ -23,7 +23,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 4. 提醒我完全重启 WorkBuddy。
 5. 如果 WorkBuddy 提示 MCP 连接器需要 Trust/启用，停下来让我在 GUI 里确认。
 6. 打开 `app/index.html`，让我从第 1 步开始配置。
-7. 复制前端里的“登录验证提示词”，用 `playwright-edge` 打开携程，然后停止自动操作，让我用微信或携程 App 扫码登录。
+7. 复制前端里的“登录验证提示词”，用 `playwright-browser` 打开携程，然后停止自动操作，让我用微信或携程 App 扫码登录。
 8. 我说“已登录”后，打开一页携程酒店详情页，确认价格是否可见。
 9. 让我填写城市、本店酒店名、竞对数量和每家竞对酒店名。不要让我手填携程页面链接。
 10. 使用前端生成的候选搜索提示词，通过真实浏览器在携程搜索候选酒店，输出候选 Markdown 表格。
@@ -46,7 +46,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-workbuddy.p
 
 - `.workbuddy\.mcp.json` 或 `.workbuddy\mcp.json` 是合法 JSON。
 - 文件没有 UTF-8 BOM。
-- 存在 `playwright-edge` 浏览器连接器。
+- 存在 `playwright-browser` 浏览器连接器。
 - 项目根目录下存在 `ctrip-profile` 登录态目录。
 
 ## 停止条件

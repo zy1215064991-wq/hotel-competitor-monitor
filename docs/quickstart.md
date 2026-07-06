@@ -36,7 +36,7 @@ app/index.html
 
 ## 4. 登录携程
 
-在向导第一步复制登录验证提示词，粘贴到 WorkBuddy 普通对话中。WorkBuddy 会用 `playwright-edge` 打开携程。
+在向导第一步复制登录验证提示词，粘贴到 WorkBuddy 普通对话中。WorkBuddy 会用 `playwright-browser` 打开携程。
 
 请用微信或携程 App 扫码登录。不要让自动化输入账号、密码、手机号、短信验证码或滑块。
 

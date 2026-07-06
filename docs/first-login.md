@@ -9,7 +9,7 @@
 3. 打开 `app/index.html`。
 4. 复制第一步里的登录验证提示词。
 5. 粘贴到 WorkBuddy 普通对话。
-6. WorkBuddy 用 `playwright-edge` 打开携程后停止。
+6. WorkBuddy 用 `playwright-browser` 打开携程后停止。
 7. 用微信或携程 App 扫码登录。
 8. 登录后告诉 WorkBuddy：“已登录”。
 9. WorkBuddy 会打开酒店页验证价格是否可见。
@@ -33,4 +33,3 @@ ctrip-profile/
 ```
 
 重新执行本页扫码流程即可。
-

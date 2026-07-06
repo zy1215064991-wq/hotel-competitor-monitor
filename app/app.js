@@ -182,7 +182,7 @@ function showStep(step) {
 }
 
 function updateLoginPrompt() {
-  $("#loginPrompt").value = `请只使用 playwright-edge 真实浏览器 MCP，打开携程首页 https://www.ctrip.com/ 或任意携程酒店详情页。打开后停止自动操作，提示我用微信或携程 App 扫码登录。不要输入账号、密码、手机号、短信验证码，不要处理滑块。等我告诉你“已登录”后，再打开一页携程酒店详情页，检查房型价格是否可见。如果价格可见，回复“登录态验证通过”；如果仍显示“解锁优惠/登录后查看”，回复“携程会话未生效，请重新扫码”。`;
+  $("#loginPrompt").value = `请只使用 playwright-browser 真实浏览器 MCP，打开携程首页 https://www.ctrip.com/ 或任意携程酒店详情页。打开后停止自动操作，提示我用微信或携程 App 扫码登录。不要输入账号、密码、手机号、短信验证码，不要处理滑块。等我告诉你“已登录”后，再打开一页携程酒店详情页，检查房型价格是否可见。如果价格可见，回复“登录态验证通过”；如果仍显示“解锁优惠/登录后查看”，回复“携程会话未生效，请重新扫码”。`;
 }
 
 function buildCandidateSearchPrompt() {
@@ -196,7 +196,7 @@ function buildCandidateSearchPrompt() {
     })
     .join("\n");
 
-  return `请只使用 playwright-edge 真实浏览器 MCP，在携程国内站搜索酒店候选，不要使用 fetch、WebFetch、curl、requests 或任何纯 HTTP 抓取方式。
+  return `请只使用 playwright-browser 真实浏览器 MCP，在携程国内站搜索酒店候选，不要使用 fetch、WebFetch、curl、requests 或任何纯 HTTP 抓取方式。
 
 城市：${state.city}
 
@@ -316,8 +316,8 @@ function buildAutomationPrompt() {
 ## 硬约束
 
 - 全链路只使用国内可访问服务：WorkBuddy 内置模型、携程国内站、微信或企业微信 ClawBot。
-- 浏览携程必须使用已配置的真实浏览器 MCP：playwright-edge / mcp__playwright-edge。
-- playwright-edge 必须复用固定的持久化浏览器资料目录：ctrip-profile。
+- 浏览携程必须使用已配置的真实浏览器 MCP：playwright-browser / mcp__playwright-browser。
+- playwright-browser 必须复用固定的持久化浏览器资料目录：ctrip-profile。
 - 浏览器必须使用有头模式。不要使用 headless 模式。不要添加 stealth、绕检测、绕风控或伪造登录相关参数。
 - 不要使用 fetch、WebFetch、requests、curl 或任何纯 HTTP 抓取方式访问携程页面。
 - 不要绕过验证码、滑块、短信验证、登录墙或风控。
@@ -365,7 +365,7 @@ function buildAutomationPrompt() {
 3. 校验日期、房间数、成人数、儿童数、儿童年龄、房型和点评条数。
 4. 读取 competitors.md，解析本店和用户确认的全部竞对酒店。
 5. 执行登录态自检。
-6. 用 playwright-edge 逐家打开携程详情页。
+6. 用 playwright-browser 逐家打开携程详情页。
 7. 页面链接或页面查询条件必须设置为本次入住日期、本次离店日期、房间数、成人数、儿童数、儿童年龄。
 8. 页面加载后必须检查可见条件是否与本次实际查询口径一致；不一致时先改成一致再抓价。
 9. 抓取酒店名、实际查询口径、目标房型可售状态、目标房型或相近房型价格、早餐、取消政策、房态和最新点评。
@@ -432,7 +432,7 @@ function buildDailyPrompt() {
 }
 
 function buildRunOncePrompt() {
-  return "请读取本目录的 automation-prompt.md，并严格按里面的步骤立即跑一次酒店竞对每日监控。只使用 playwright-edge 真实浏览器 MCP，不要使用 fetch 或 WebFetch。遇到携程登录、验证码或风控就停止并说明。";
+  return "请读取本目录的 automation-prompt.md，并严格按里面的步骤立即跑一次酒店竞对每日监控。只使用 playwright-browser 真实浏览器 MCP，不要使用 fetch 或 WebFetch。遇到携程登录、验证码或风控就停止并说明。";
 }
 
 function generateFiles() {

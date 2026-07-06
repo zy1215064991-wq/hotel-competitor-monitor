@@ -5,8 +5,8 @@
 ## 硬约束
 
 - 全链路只使用国内可访问服务：WorkBuddy 内置模型、携程国内站、微信或企业微信 ClawBot。
-- 浏览携程必须使用已配置的真实浏览器 MCP：playwright-edge / mcp__playwright-edge。
-- playwright-edge 必须复用固定的持久化浏览器资料目录：ctrip-profile。
+- 浏览携程必须使用已配置的真实浏览器 MCP：playwright-browser / mcp__playwright-browser。
+- playwright-browser 必须复用固定的持久化浏览器资料目录：ctrip-profile。
 - 浏览器必须使用有头模式。不要使用 headless 模式。不要添加 stealth、绕检测、绕风控或伪造登录相关参数。
 - 不要使用 fetch、WebFetch、requests、curl 或任何纯 HTTP 抓取方式访问携程页面。
 - 不要绕过验证码、滑块、短信验证、登录墙或风控。
@@ -45,7 +45,7 @@
 3. 校验日期、房间数、成人数、儿童数、儿童年龄、房型和点评条数。
 4. 读取 competitors.md，解析本店和用户确认的全部竞对酒店。
 5. 执行登录态自检。
-6. 用 playwright-edge 逐家打开携程详情页。
+6. 用 playwright-browser 逐家打开携程详情页。
 7. 页面链接或页面查询条件必须设置为本次入住日期、本次离店日期、房间数、成人数、儿童数、儿童年龄。
 8. 页面加载后必须检查可见条件是否与本次实际查询口径一致；不一致时先改成一致再抓价。
 9. 抓取酒店名、实际查询口径、目标房型可售状态、目标房型或相近房型价格、早餐、取消政策、房态和最新点评。
