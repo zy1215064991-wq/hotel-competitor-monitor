@@ -1,0 +1,10 @@
+ctrip-profile/
+reports/
+output/
+*.log
+.env
+.DS_Store
+node_modules/
+dist/
+work/
+
