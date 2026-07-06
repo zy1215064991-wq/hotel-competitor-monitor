@@ -16,9 +16,9 @@ No third-party model API key is required. Do not use fetch/WebFetch/curl/request
 ## Quick Start
 
 1. Download or clone this repository.
-2. Run `scripts/setup-workbuddy-mcp.ps1`.
-3. Restart WorkBuddy.
-4. Open `app/index.html`.
+2. Open the folder in WorkBuddy.
+3. Ask WorkBuddy to read `workbuddy-start-here.md` and follow it step by step.
+4. Or run `install.ps1` manually, restart WorkBuddy, then open `app/index.html`.
 5. Complete browser login and hotel confirmation.
 6. Copy the generated Automation prompt into WorkBuddy.
 7. Run once, then schedule daily `07:30`.
@@ -37,6 +37,8 @@ The setup wizard generates a WorkBuddy prompt that asks the AI assistant to sear
 ## Repository Contents
 
 ```text
+install.ps1 Root installer for checks, MCP setup, and verification
+workbuddy-start-here.md Entry instructions for WorkBuddy agents
 app/        Local setup wizard
 templates/  WorkBuddy prompt and report templates
 scripts/    Windows setup and verification scripts
@@ -51,4 +53,3 @@ skill/      Optional skill for agents using this project
 - Use Playwright MCP with a real Microsoft Edge browser.
 - Do not bypass captcha, sliders, SMS verification, login walls, or risk-control pages.
 - Do not commit local `ctrip-profile/`, reports, cookies, logs, or secrets.
-

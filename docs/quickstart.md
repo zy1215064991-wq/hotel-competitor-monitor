@@ -6,7 +6,19 @@
 
 ## 2. 配置 WorkBuddy Playwright MCP
 
-在 PowerShell 中进入项目目录，运行：
+推荐方式：用 WorkBuddy 打开项目目录，然后对 WorkBuddy 说：
+
+```text
+请阅读 workbuddy-start-here.md，并按步骤帮我部署。
+```
+
+手动方式：在 PowerShell 中进入项目目录，运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+如果只想重新写入 MCP 配置，也可以运行底层脚本：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-workbuddy-mcp.ps1
@@ -53,4 +65,3 @@ app/index.html
 - 推送：按需选择 ClawBot 或企业微信
 
 先点 `Run once` 验证。
-
