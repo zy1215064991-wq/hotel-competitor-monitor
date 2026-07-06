@@ -235,6 +235,23 @@ textarea {
   margin-top: 16px;
 }
 
+.inline-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.inline-actions button {
+  padding: 0 14px;
+}
+
+.inline-actions span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .actions button {
   padding: 0 14px;
 }
@@ -318,4 +335,3 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
-

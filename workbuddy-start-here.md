@@ -25,9 +25,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 6. 打开 `app/index.html`，让我从第 1 步开始配置。
 7. 复制前端里的“登录验证提示词”，用 `playwright-edge` 打开携程，然后停止自动操作，让我用微信或携程 App 扫码登录。
 8. 我说“已登录”后，打开一页携程酒店详情页，确认价格是否可见。
-9. 让我填写城市、本店酒店名和 3 家竞对酒店名。不要让我手填携程页面链接。
+9. 让我填写城市、本店酒店名、竞对数量和每家竞对酒店名。不要让我手填携程页面链接。
 10. 使用前端生成的候选搜索提示词，通过真实浏览器在携程搜索候选酒店，输出候选 Markdown 表格。
-11. 等我确认本店和 3 家竞对后，生成：
+11. 等我确认本店和用户指定数量的竞对后，生成：
     - `competitors.md`
     - `automation-prompt.md`
     - `daily-prompt.md`

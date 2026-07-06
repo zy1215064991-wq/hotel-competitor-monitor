@@ -1,13 +1,23 @@
-const roles = ["本店", "竞对1", "竞对2", "竞对3"];
+const DEFAULT_COMPETITOR_COUNT = 3;
+const MIN_COMPETITOR_COUNT = 1;
+const MAX_COMPETITOR_COUNT = 10;
+
+function buildRoles(count = DEFAULT_COMPETITOR_COUNT) {
+  return ["本店", ...Array.from({ length: count }, (_, index) => `竞对${index + 1}`)];
+}
+
+function createHotelState() {
+  return { desiredName: "", keyword: "", confirmed: null };
+}
+
+function buildHotels(count = DEFAULT_COMPETITOR_COUNT) {
+  return Object.fromEntries(buildRoles(count).map((role) => [role, createHotelState()]));
+}
 
 const state = {
   city: "上海",
-  hotels: {
-    "本店": { desiredName: "", keyword: "", confirmed: null },
-    "竞对1": { desiredName: "", keyword: "", confirmed: null },
-    "竞对2": { desiredName: "", keyword: "", confirmed: null },
-    "竞对3": { desiredName: "", keyword: "", confirmed: null }
-  },
+  competitorCount: DEFAULT_COMPETITOR_COUNT,
+  hotels: buildHotels(DEFAULT_COMPETITOR_COUNT),
   query: {
     offsetDays: 7,
     nights: 1,
@@ -42,24 +52,27 @@ function init() {
 
 function renderHotelInputs() {
   const container = $("#hotelInputs");
+  const roles = buildRoles(state.competitorCount);
   container.innerHTML = roles
     .map((role) => {
+      const item = state.hotels[role] || createHotelState();
       const placeholder = role === "本店" ? "例如 汉庭酒店 前滩 东方体育中心" : "例如 汉庭酒店 江宁路";
       return `
         <div class="hotel-row" data-role="${role}">
           <div class="role">${role}</div>
           <label class="field">
             <span>酒店名或关键词</span>
-            <input data-hotel-name="${role}" placeholder="${placeholder}">
+            <input data-hotel-name="${role}" value="${escapeHtml(item.desiredName)}" placeholder="${placeholder}">
           </label>
           <label class="field">
             <span>地址/商圈辅助</span>
-            <input data-hotel-keyword="${role}" placeholder="可选，例如 三林路 / 虹桥站">
+            <input data-hotel-keyword="${role}" value="${escapeHtml(item.keyword)}" placeholder="可选，例如 三林路 / 虹桥站">
           </label>
         </div>
       `;
     })
     .join("");
+  bindHotelInputs();
 }
 
 function bindNavigation() {
@@ -73,19 +86,9 @@ function bindInputs() {
     state.city = event.target.value.trim() || "上海";
     updateSummary();
   });
+  $("#competitorCount").addEventListener("input", updateSummary);
   $("#homeKeyword").addEventListener("input", (event) => {
     state.hotels["本店"].keyword = event.target.value.trim();
-  });
-  $$("[data-hotel-name]").forEach((input) => {
-    input.addEventListener("input", (event) => {
-      state.hotels[input.dataset.hotelName].desiredName = event.target.value.trim();
-      updateSummary();
-    });
-  });
-  $$("[data-hotel-keyword]").forEach((input) => {
-    input.addEventListener("input", (event) => {
-      state.hotels[input.dataset.hotelKeyword].keyword = event.target.value.trim();
-    });
   });
   Object.keys(state.query).forEach((key) => {
     const input = document.getElementById(key);
@@ -98,13 +101,32 @@ function bindInputs() {
   });
 }
 
+function bindHotelInputs() {
+  $$("[data-hotel-name]").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      state.hotels[input.dataset.hotelName].desiredName = event.target.value.trim();
+      updateSummary();
+    });
+  });
+  $$("[data-hotel-keyword]").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      state.hotels[input.dataset.hotelKeyword].keyword = event.target.value.trim();
+    });
+  });
+}
+
 function bindActions() {
   $("#copyLoginPrompt").addEventListener("click", () => copyText($("#loginPrompt").value, "已复制登录验证提示词"));
+  $("#applyCompetitorCount").addEventListener("click", () => applyCompetitorCount());
   $("#buildSearchPrompt").addEventListener("click", () => {
+    applyCompetitorCount({ silent: true });
     $("#searchPrompt").value = buildCandidateSearchPrompt();
     copyText($("#searchPrompt").value, "已生成并复制候选搜索提示词");
   });
-  $("#copySearchPrompt").addEventListener("click", () => copyText($("#searchPrompt").value || buildCandidateSearchPrompt(), "已复制候选搜索提示词"));
+  $("#copySearchPrompt").addEventListener("click", () => {
+    applyCompetitorCount({ silent: true });
+    copyText($("#searchPrompt").value || buildCandidateSearchPrompt(), "已复制候选搜索提示词");
+  });
   $("#parseCandidates").addEventListener("click", () => renderCandidates(parseCandidateTable($("#candidatePaste").value)));
   $("#generateFiles").addEventListener("click", generateFiles);
   $("#downloadCompetitors").addEventListener("click", () => download("competitors.md", state.generated.competitors || buildCompetitorsMarkdown()));
@@ -120,6 +142,38 @@ function bindActions() {
   });
 }
 
+function readCompetitorCount() {
+  const input = $("#competitorCount");
+  const parsed = Number(input.value);
+  const safeCount = Number.isFinite(parsed) ? parsed : DEFAULT_COMPETITOR_COUNT;
+  return Math.min(MAX_COMPETITOR_COUNT, Math.max(MIN_COMPETITOR_COUNT, Math.round(safeCount)));
+}
+
+function applyCompetitorCount({ silent = false } = {}) {
+  const input = $("#competitorCount");
+  const nextCount = readCompetitorCount();
+  input.value = String(nextCount);
+  if (nextCount === state.competitorCount) return;
+
+  state.competitorCount = nextCount;
+
+  const nextHotels = {};
+  buildRoles(nextCount).forEach((role) => {
+    nextHotels[role] = state.hotels[role] || createHotelState();
+  });
+  state.hotels = nextHotels;
+  state.generated = { competitors: "", automation: "", daily: "" };
+
+  renderHotelInputs();
+  $("#candidateGrid").innerHTML = "";
+  $("#candidatePaste").value = "";
+  $("#searchPrompt").value = "";
+  updatePreview();
+  updateSummary();
+  updateCompletion();
+  if (!silent) toast(`竞对数量已更新为 ${nextCount} 家`);
+}
+
 function showStep(step) {
   $$(".panel").forEach((panel) => panel.classList.toggle("is-active", panel.dataset.step === step));
   $$(".step").forEach((button) => button.classList.toggle("is-active", button.dataset.jump === step));
@@ -132,6 +186,7 @@ function updateLoginPrompt() {
 }
 
 function buildCandidateSearchPrompt() {
+  const roles = buildRoles(state.competitorCount);
   const hotelLines = roles
     .map((role) => {
       const item = state.hotels[role];
@@ -144,6 +199,10 @@ function buildCandidateSearchPrompt() {
   return `请只使用 playwright-edge 真实浏览器 MCP，在携程国内站搜索酒店候选，不要使用 fetch、WebFetch、curl、requests 或任何纯 HTTP 抓取方式。
 
 城市：${state.city}
+
+竞对数量：${state.competitorCount} 家
+
+待确认酒店总数：${roles.length} 家（本店 1 家，竞对 ${state.competitorCount} 家）
 
 待确认酒店：
 ${hotelLines}
@@ -161,6 +220,7 @@ ${hotelLines}
 
 function parseCandidateTable(text) {
   const rows = [];
+  const roles = buildRoles(state.competitorCount);
   text
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -219,6 +279,7 @@ function renderCandidates(candidates) {
 }
 
 function buildCompetitorsMarkdown() {
+  const roles = buildRoles(state.competitorCount);
   const lines = [
     "# 酒店竞对清单",
     "",
@@ -241,6 +302,7 @@ function buildCompetitorsMarkdown() {
 
 function buildAutomationPrompt() {
   const q = state.query;
+  const roles = buildRoles(state.competitorCount);
   return `# 酒店竞对每日监控 Automation Prompt
 
 请用 WorkBuddy 内置模型执行本任务，不调用任何第三方模型接口，不读取或要求任何接口密钥。优先使用消耗最低的内置模型。
@@ -273,6 +335,7 @@ function buildAutomationPrompt() {
 - 默认目标房型：${q.roomType}
 - 点评条数：${q.reviewCount}
 - 默认定时：${q.scheduleTime}
+- 监控对象：本店 1 家，竞对 ${state.competitorCount} 家，共 ${roles.length} 家酒店
 - 价格口径：携程国内站页面可见到手价/含税费说明
 
 ## 对话框本次覆盖参数
@@ -300,7 +363,7 @@ function buildAutomationPrompt() {
 1. 解析本轮 WorkBuddy 对话是否包含本次覆盖参数。
 2. 计算本次实际查询口径。
 3. 校验日期、房间数、成人数、儿童数、儿童年龄、房型和点评条数。
-4. 读取 competitors.md，解析本店和 3 家竞对。
+4. 读取 competitors.md，解析本店和用户确认的全部竞对酒店。
 5. 执行登录态自检。
 6. 用 playwright-edge 逐家打开携程详情页。
 7. 页面链接或页面查询条件必须设置为本次入住日期、本次离店日期、房间数、成人数、儿童数、儿童年龄。
@@ -314,13 +377,15 @@ function buildAutomationPrompt() {
 }
 
 function buildDailyPrompt() {
+  const roles = buildRoles(state.competitorCount);
   return `# 酒店竞对每日监控日报 Prompt
 
 你是酒店收益管理和点评运营助手。请只基于我提供的携程抓取数据分析，不要编造没有出现在数据里的价格、房型、点评或原因。
 
 ## 输入数据
 
-- 本店和 3 家竞对的酒店名、携程页面链接、目标房型、查询口径
+- 本店和用户确认的 ${state.competitorCount} 家竞对酒店名、携程页面链接、目标房型、查询口径
+- 本次监控对象总数：${roles.length} 家酒店
 - 本次实际查询口径：入住日期、离店日期、房间数、成人数、儿童数、目标房型、点评条数、参数来源
 - 每家酒店在统一口径下抓到的价格、可售房型、房态/早餐/取消政策等可见信息
 - 每家酒店最新点评内容、评分、点评时间
@@ -389,19 +454,21 @@ function updatePreview() {
 }
 
 function updateSummary() {
+  const roles = buildRoles(state.competitorCount);
   const confirmedCount = roles.filter((role) => state.hotels[role].confirmed).length;
   $("#summary").innerHTML = `
     <strong>当前配置</strong>
-    <p>城市：${escapeHtml(state.city)}；已确认酒店：${confirmedCount}/4；默认房型：${escapeHtml(state.query.roomType)}；${state.query.rooms}间，${state.query.adults}成人，${state.query.children}儿童；未来第 ${state.query.offsetDays} 天入住，住 ${state.query.nights} 晚；每天 ${state.query.scheduleTime}。</p>
+    <p>城市：${escapeHtml(state.city)}；竞对数量：${state.competitorCount} 家；已确认酒店：${confirmedCount}/${roles.length}；默认房型：${escapeHtml(state.query.roomType)}；${state.query.rooms}间，${state.query.adults}成人，${state.query.children}儿童；未来第 ${state.query.offsetDays} 天入住，住 ${state.query.nights} 晚；每天 ${state.query.scheduleTime}。</p>
   `;
 }
 
 function updateCompletion() {
+  const roles = buildRoles(state.competitorCount);
   const checks = $$("[data-check]").filter((input) => input.checked).length;
   const confirmed = roles.filter((role) => state.hotels[role].confirmed).length;
   const queryDone = state.query.roomType && state.query.reviewCount > 0 ? 1 : 0;
   const generated = state.generated.automation ? 1 : 0;
-  const done = (checks === 4 ? 1 : 0) + (confirmed === 4 ? 1 : 0) + queryDone + generated;
+  const done = (checks === 4 ? 1 : 0) + (confirmed === roles.length ? 1 : 0) + queryDone + generated;
   $("#completionStatus").textContent = `${done}/4 已完成`;
 }
 

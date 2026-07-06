@@ -13,7 +13,7 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 2. 运行或检查 `scripts/setup-workbuddy-mcp.ps1`。
 3. 验证 WorkBuddy 能看到 `playwright-edge`。
 4. 打开 `app/index.html`，引导用户完成浏览器登录。
-5. 询问城市、本店酒店名和 3 家竞对酒店名。
+5. 询问城市、本店酒店名、竞对数量和每家竞对酒店名。
 6. 使用 WorkBuddy 和 `playwright-edge` 搜索携程候选酒店；不要对携程使用 fetch、WebFetch、curl、requests。
 7. 返回候选酒店，并在保存任何酒店前要求用户确认。
 8. 生成 `competitors.md`、`automation-prompt.md`、`daily-prompt.md`。
