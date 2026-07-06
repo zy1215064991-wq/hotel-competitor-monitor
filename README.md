@@ -1,55 +1,121 @@
-# Hotel Competitor Monitor for WorkBuddy
+# 酒店竞对每日监控 WorkBuddy 部署包
 
-Local-first Windows setup kit for a WorkBuddy + Playwright MCP Ctrip hotel competitor daily report.
+这是一个面向 Windows + WorkBuddy 的本地部署包，用来搭建“酒店竞对每日监控”最小可用版本。
 
-The project helps a hotel operator configure a daily workflow:
+目标流程：
 
-1. WorkBuddy opens Ctrip with a real browser.
-2. The user scan-logs in once with WeChat or the Ctrip app.
-3. WorkBuddy searches and confirms one home hotel plus three competitors.
-4. WorkBuddy captures prices, room types, and recent reviews.
-5. The built-in WorkBuddy model writes a red/yellow/green operating report.
-6. WorkBuddy can push the result through ClawBot or Enterprise WeChat if configured.
+1. WorkBuddy 用真实 Microsoft Edge 浏览器打开携程国内站。
+2. 用户首次用微信或携程 App 扫码登录一次。
+3. 用户输入城市、本店名称和 3 家竞对名称，不需要手填携程 URL。
+4. WorkBuddy 在携程搜索候选酒店，用户确认正确酒店。
+5. WorkBuddy 抓取价格、房型和最新点评。
+6. WorkBuddy 内置模型生成红黄绿三色经营日报。
+7. 如已配置 ClawBot 或企业微信，可把日报推送到微信侧。
 
-No third-party model API key is required. Do not use fetch/WebFetch/curl/requests for Ctrip pages.
+本项目不需要第三方模型 API Key，不配置 DeepSeek/OpenAI 等外部模型，不依赖 VPN 或翻墙服务。
 
-## Quick Start
+## 快速开始
 
-1. Download or clone this repository.
-2. Open the folder in WorkBuddy.
-3. Ask WorkBuddy to read `workbuddy-start-here.md` and follow it step by step.
-4. Or run `install.ps1` manually, restart WorkBuddy, then open `app/index.html`.
-5. Complete browser login and hotel confirmation.
-6. Copy the generated Automation prompt into WorkBuddy.
-7. Run once, then schedule daily `07:30`.
+推荐方式：
 
-## What Users Fill In
-
-Users should not paste Ctrip hotel URLs. They provide:
-
-- City
-- Home hotel name and optional address/business district keyword
-- Three competitor names or search keywords
-- Default query policy such as room type, adults, nights, and review count
-
-The setup wizard generates a WorkBuddy prompt that asks the AI assistant to search Ctrip with `playwright-edge`, return candidate hotels, and let the user confirm the right branches.
-
-## Repository Contents
+1. 下载或 clone 本项目到 Windows 电脑。
+2. 用 WorkBuddy 打开这个文件夹。
+3. 对 WorkBuddy 说：
 
 ```text
-install.ps1 Root installer for checks, MCP setup, and verification
-workbuddy-start-here.md Entry instructions for WorkBuddy agents
-app/        Local setup wizard
-templates/  WorkBuddy prompt and report templates
-scripts/    Windows setup and verification scripts
-docs/       Quick start, login, push, and troubleshooting docs
-skill/      Optional skill for agents using this project
+请阅读 workbuddy-start-here.md，并按步骤帮我部署。
 ```
 
-## Safety Boundaries
+WorkBuddy 会按入口文档一步步检查环境、配置 Playwright MCP、提示你重启 WorkBuddy、扫码登录携程，并引导你完成本店和竞对配置。
 
-- Use WorkBuddy built-in models only.
-- Use Ctrip domestic site only.
-- Use Playwright MCP with a real Microsoft Edge browser.
-- Do not bypass captcha, sliders, SMS verification, login walls, or risk-control pages.
-- Do not commit local `ctrip-profile/`, reports, cookies, logs, or secrets.
+手动方式：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+然后完全重启 WorkBuddy，打开：
+
+```text
+app/index.html
+```
+
+## 用户需要填写什么
+
+用户不需要粘贴携程酒店 URL，只需要填写：
+
+- 城市
+- 本店酒店名
+- 本店可选地址、商圈或地标关键词
+- 3 家竞对酒店名或搜索关键词
+- 默认查询口径：房型、成人数、儿童数、入住偏移天数、入住晚数、点评条数
+
+前端向导会生成候选搜索提示词，让 WorkBuddy 用 `playwright-edge` 在携程真实浏览器里搜索候选酒店，并输出候选表格。用户确认后，向导会生成 WorkBuddy 后续自动化需要的配置文件。
+
+## 目录说明
+
+```text
+install.ps1                根目录安装入口：检查环境、配置 MCP、验证结果
+workbuddy-start-here.md    给 WorkBuddy 读取的部署入口说明
+app/                       本地配置向导，直接打开 app/index.html
+templates/                 WorkBuddy 自动化提示词和日报模板
+scripts/                   Windows 配置与验证脚本
+docs/                      快速开始、首次登录、推送和排障说明
+skill/                     可选的 WorkBuddy/Codex skill 说明
+```
+
+## 会生成哪些文件
+
+完成向导后会生成：
+
+- `competitors.md`：本店 + 3 家竞对清单
+- `automation-prompt.md`：WorkBuddy 自动化抓取与分析提示词
+- `daily-prompt.md`：红黄绿三色日报分析模板
+
+这些文件放到你的 WorkBuddy 项目目录后，可以先手动 Run once 验证，再配置每天 07:30 自动运行。
+
+## 安全边界
+
+- 只使用 WorkBuddy 内置模型。
+- 只使用携程国内站。
+- 携程页面必须通过 Playwright MCP + 真实 Microsoft Edge 浏览器访问。
+- 不使用 fetch、WebFetch、curl、requests 等纯 HTTP 方式抓携程页面。
+- 不自动输入账号、密码、手机号、短信验证码。
+- 不绕过验证码、滑块、登录墙或风控页面。
+- 不把 `ctrip-profile/`、报告、cookies、日志、密钥提交到 GitHub。
+
+## 登录态说明
+
+携程价格可能需要登录才能看到。本项目使用固定的 `ctrip-profile/` 目录保存浏览器登录态。
+
+首次运行时，WorkBuddy 会打开携程并停下来，让你用微信或携程 App 扫码登录。之后每天运行前会先检查登录态：
+
+- 如果价格可见：继续抓取。
+- 如果会话过期：停止运行，并提醒你重新扫码登录。
+
+## 推送和定时
+
+WorkBuddy Automation 定时任务、ClawBot 或企业微信推送如果只能在桌面端 GUI 中配置，本项目不会假装自动完成。请按 `docs/clawbot-setup.md` 和向导里的提示手动设置。
+
+建议默认定时：
+
+```text
+每天 07:30
+```
+
+## 手动验证
+
+运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-workbuddy.ps1
+```
+
+通过标准：
+
+- `.workbuddy\.mcp.json` 或 `.workbuddy\mcp.json` 是合法 JSON。
+- 文件没有 UTF-8 BOM。
+- 存在 `playwright-edge` MCP server。
+- 项目根目录下存在 `ctrip-profile` 登录态目录。
+
+如果验证不通过，请先看 `docs/troubleshooting.md`。
