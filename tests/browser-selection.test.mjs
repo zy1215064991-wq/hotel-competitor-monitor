@@ -15,7 +15,8 @@ assert.match(setup, /Google\\Chrome\\Application\\chrome\.exe/, "setup 脚本应
 assert.match(setup, /"playwright-browser"/, "MCP server 名称应该是中性的 playwright-browser");
 assert.match(setup, /--browser=\$\(\$browserChoice\.BrowserArg\)/, "MCP browser 参数应该使用自动选择结果");
 assert.match(setup, /--executable-path=\$\(\$browserChoice\.ExecutablePath\)/, "MCP executable-path 应该使用自动选择结果");
-assert.match(setup, /allow = @\("mcp__playwright-browser"\)/, "权限应该允许 playwright-browser");
+assert.match(setup, /mcp__playwright-browser/, "权限应该允许 playwright-browser");
+assert.match(setup, /Merge-PlaywrightConfig/, "setup 脚本应该合并已有配置");
 
 assert.match(install, /\[ValidateSet\("auto", "chrome", "edge"\)\]/, "install 脚本应该把浏览器选择参数传给 setup");
 assert.match(install, /-Browser \$Browser/, "install 脚本应该调用 setup 时传递浏览器选择");

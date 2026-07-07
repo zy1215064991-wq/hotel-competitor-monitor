@@ -28,6 +28,8 @@
 
 WorkBuddy 会按入口文档一步步检查环境、配置 Playwright 浏览器连接器、提示你重启 WorkBuddy、扫码登录携程，并引导你完成本店和竞对配置。
 
+安装脚本会先备份已有 WorkBuddy MCP 配置，并只新增或更新 `playwright-browser`，不会清空你原来配置的其他 MCP 连接器。
+
 手动方式：
 
 ```powershell

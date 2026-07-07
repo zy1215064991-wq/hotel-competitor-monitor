@@ -61,38 +61,84 @@ $browserOutputDir = Join-Path $repoRoot "output\browser\$($browserChoice.Name)"
 
 New-Item -ItemType Directory -Force -Path $ConfigDir, $profileRoot, $profileDir, $browserOutputDir | Out-Null
 
-$config = [ordered]@{
-  mcpServers = [ordered]@{
-    "playwright-browser" = [ordered]@{
-      type = "stdio"
-      command = $nodeNpx
-      args = @(
-        "-y",
-        "@playwright/mcp@latest",
-        "--browser=$($browserChoice.BrowserArg)",
-        "--executable-path=$($browserChoice.ExecutablePath)",
-        "--user-data-dir=$profileDir",
-        "--output-dir=$browserOutputDir",
-        "--output-mode=file",
-        "--save-session",
-        "--shared-browser-context",
-        "--viewport-size=1360x900",
-        "--timeout-action=15000",
-        "--timeout-navigation=90000"
-      )
-      env = [ordered]@{
-        npm_config_registry = "https://registry.npmmirror.com"
-        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
-      }
-      description = "Playwright MCP for WorkBuddy hotel competitor monitoring. Uses real browser and persistent Ctrip login profile."
-    }
+$playwrightServer = [ordered]@{
+  type = "stdio"
+  command = $nodeNpx
+  args = @(
+    "-y",
+    "@playwright/mcp@latest",
+    "--browser=$($browserChoice.BrowserArg)",
+    "--executable-path=$($browserChoice.ExecutablePath)",
+    "--user-data-dir=$profileDir",
+    "--output-dir=$browserOutputDir",
+    "--output-mode=file",
+    "--save-session",
+    "--shared-browser-context",
+    "--viewport-size=1360x900",
+    "--timeout-action=15000",
+    "--timeout-navigation=90000"
+  )
+  env = [ordered]@{
+    npm_config_registry = "https://registry.npmmirror.com"
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
   }
-  permissions = [ordered]@{
-    allow = @("mcp__playwright-browser")
+  description = "Playwright MCP for WorkBuddy hotel competitor monitoring. Uses real browser and persistent Ctrip login profile."
+}
+
+function New-EmptyConfig {
+  [pscustomobject]@{
+    mcpServers = [pscustomobject]@{}
+    permissions = [pscustomobject]@{
+      allow = @()
+    }
   }
 }
 
-$json = $config | ConvertTo-Json -Depth 10
+function Read-Config {
+  param([string]$Path)
+
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return New-EmptyConfig
+  }
+
+  $text = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
+  if (-not $text.Trim()) {
+    return New-EmptyConfig
+  }
+
+  return $text | ConvertFrom-Json
+}
+
+function Ensure-ObjectProperty {
+  param(
+    [pscustomobject]$Target,
+    [string]$Name,
+    [object]$Value
+  )
+
+  if (-not $Target.PSObject.Properties[$Name]) {
+    $Target | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
+  }
+}
+
+function Merge-PlaywrightConfig {
+  param([pscustomobject]$Config)
+
+  Ensure-ObjectProperty -Target $Config -Name "mcpServers" -Value ([pscustomobject]@{})
+  $Config.mcpServers | Add-Member -NotePropertyName "playwright-browser" -NotePropertyValue $playwrightServer -Force
+
+  Ensure-ObjectProperty -Target $Config -Name "permissions" -Value ([pscustomobject]@{})
+  Ensure-ObjectProperty -Target $Config.permissions -Name "allow" -Value @()
+
+  $allow = @($Config.permissions.allow)
+  if ($allow -notcontains "mcp__playwright-browser") {
+    $allow += "mcp__playwright-browser"
+  }
+  $Config.permissions.allow = $allow
+
+  return $Config
+}
+
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 foreach ($name in @(".mcp.json", "mcp.json")) {
@@ -102,6 +148,8 @@ foreach ($name in @(".mcp.json", "mcp.json")) {
     Copy-Item -LiteralPath $path -Destination $backup -Force
     Write-Host "已备份现有 $name 到 $backup"
   }
+  $config = Merge-PlaywrightConfig -Config (Read-Config -Path $path)
+  $json = $config | ConvertTo-Json -Depth 10
   [System.IO.File]::WriteAllText($path, $json, $utf8NoBom)
   Write-Host "已写入 $path"
 }
