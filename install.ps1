@@ -107,7 +107,7 @@ Write-Host "1. 完全退出并重启 WorkBuddy。"
 Write-Host "2. 如果 WorkBuddy 提示需要信任或启用 playwright-browser，请在图形界面中确认。"
 Write-Host "3. 打开 app\index.html，或使用 -OpenWizard 参数重新运行本安装脚本。"
 Write-Host "4. 从向导复制登录验证提示词到 WorkBuddy。"
-Write-Host "5. 用微信或携程应用扫码登录携程，不要输入账号密码。"
+Write-Host "5. WorkBuddy 会直达携程登录页；请在浏览器里自行选择登录方式，不要让自动化输入账号密码或验证码。"
 Write-Host "6. 继续在向导里搜索并确认本店和用户指定数量的竞对。"
 
 Write-Host ""

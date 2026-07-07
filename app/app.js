@@ -1,6 +1,7 @@
 const DEFAULT_COMPETITOR_COUNT = 3;
 const MIN_COMPETITOR_COUNT = 1;
 const MAX_COMPETITOR_COUNT = 10;
+const CTRIP_LOGIN_URL = "https://passport.ctrip.com/user/login";
 
 function buildRoles(count = DEFAULT_COMPETITOR_COUNT) {
   return ["本店", ...Array.from({ length: count }, (_, index) => `竞对${index + 1}`)];
@@ -218,7 +219,7 @@ function showStep(step) {
 }
 
 function updateLoginPrompt() {
-  $("#loginPrompt").value = `请只使用 playwright-browser 真实浏览器 MCP，打开携程首页 https://www.ctrip.com/ 或任意携程酒店详情页。打开后停止自动操作，提示我用微信或携程 App 扫码登录。不要输入账号、密码、手机号、短信验证码，不要处理滑块。等我告诉你“已登录”后，再打开一页携程酒店详情页，检查房型价格是否可见。如果价格可见，回复“登录态验证通过”；如果仍显示“解锁优惠/登录后查看”，回复“携程会话未生效，请重新扫码”。`;
+  $("#loginPrompt").value = `请只使用 playwright-browser 真实浏览器 MCP，直接打开携程登录页：${CTRIP_LOGIN_URL}。打开后停止自动操作，提示我在浏览器里自行选择登录方式，例如扫码、手机号、账号或页面提供的其他方式。不要替我输入账号、密码、手机号、短信验证码，不要处理验证码、滑块或任何风控验证。等我告诉你“已登录”后，再打开一页携程酒店详情页，检查房型价格是否可见。如果价格可见，回复“登录态验证通过”；如果仍显示“解锁优惠/登录后查看”或被重定向回登录页，回复“携程会话未生效，请重新人工登录”。`;
 }
 
 function buildManualDiscoveryInstructions(roles) {
@@ -447,7 +448,7 @@ function buildAutomationPrompt() {
 
 - 已登录：页面能看到房型价格，或不再出现“解锁优惠/登录后查看/登录查看更多点评/登录页重定向”，继续抓价。
 - 已掉线：不要自动重新登录，不要输入账号密码，不要改用其他平台或接口补抓携程价格；停止本次运行。
-- 已掉线时推送：优先通过微信助理 ClawBot 推送“携程会话已过期，请重新扫码登录后重新运行酒店竞对每日监控”。如果 ClawBot 未配置，不要伪造推送成功，只在最终回复说明。
+- 已掉线时推送：优先通过微信助理 ClawBot 推送“携程会话已过期，请重新人工登录后重新运行酒店竞对每日监控”。如果 ClawBot 未配置，不要伪造推送成功，只在最终回复说明。
 
 ## 执行顺序
 
