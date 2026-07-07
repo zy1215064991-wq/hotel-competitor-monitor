@@ -254,6 +254,28 @@ textarea {
   font-size: 13px;
 }
 
+.discovery-controls {
+  margin-top: 16px;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.helper-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7f9fc;
+  padding: 14px;
+}
+
+.helper-card p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
 .actions button {
   padding: 0 14px;
 }

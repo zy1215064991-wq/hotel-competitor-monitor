@@ -69,6 +69,37 @@
           <span>默认 3 家，可按门店实际监控范围调整。</span>
         </div>
 
+        <div class="grid three discovery-controls">
+          <label class="field">
+            <span>竞对发现方式</span>
+            <select id="competitorDiscoveryMode">
+              <option value="manual">手动指定酒店关键词</option>
+              <option value="auto">自动发现竞对</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>位置/商圈/地标</span>
+            <input id="discoveryLocation" placeholder="例如 江桥万达">
+          </label>
+          <label class="field">
+            <span>品牌筛选</span>
+            <input id="discoveryBrandKeywords" placeholder="例如 汉庭 / 全季 / 如家，可留空">
+          </label>
+          <label class="field">
+            <span>价格下限</span>
+            <input id="discoveryPriceMin" type="number" min="0" placeholder="例如 200">
+          </label>
+          <label class="field">
+            <span>价格上限</span>
+            <input id="discoveryPriceMax" type="number" min="0" placeholder="例如 450">
+          </label>
+          <label class="field">
+            <span>距离范围 km</span>
+            <input id="discoveryMaxDistanceKm" type="number" min="0.5" step="0.5" value="3">
+          </label>
+        </div>
+        <p class="hint">自动发现会让 WorkBuddy 先搜位置或地标，再用携程列表页侧边栏筛品牌、价格、距离和评分；候选仍由你确认后才写入清单。</p>
+
         <div class="hotel-list" id="hotelInputs"></div>
 
         <div class="actions">

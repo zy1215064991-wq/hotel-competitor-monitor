@@ -18,6 +18,14 @@ const state = {
   city: "上海",
   competitorCount: DEFAULT_COMPETITOR_COUNT,
   hotels: buildHotels(DEFAULT_COMPETITOR_COUNT),
+  discovery: {
+    mode: "manual",
+    location: "",
+    brandKeywords: "",
+    priceMin: "",
+    priceMax: "",
+    maxDistanceKm: 3
+  },
   query: {
     offsetDays: 7,
     nights: 1,
@@ -54,7 +62,17 @@ function init() {
 function renderHotelInputs() {
   const container = $("#hotelInputs");
   const roles = buildRoles(state.competitorCount);
-  container.innerHTML = roles
+  const visibleRoles = state.discovery.mode === "auto" ? ["本店"] : roles;
+  const autoNotice = state.discovery.mode === "auto"
+    ? `
+        <div class="helper-card">
+          <strong>竞对将自动发现</strong>
+          <p>请先填本店名称和位置偏好。WorkBuddy 会在携程搜索位置/商圈/地标，再通过侧边栏筛选出 ${state.competitorCount} 家竞对候选；你确认后才会写入清单。</p>
+        </div>
+      `
+    : "";
+
+  container.innerHTML = autoNotice + visibleRoles
     .map((role) => {
       const item = state.hotels[role] || createHotelState();
       const placeholder = role === "本店" ? "例如 汉庭酒店 前滩 东方体育中心" : "例如 汉庭酒店 江宁路";
@@ -90,6 +108,23 @@ function bindInputs() {
   $("#competitorCount").addEventListener("input", updateSummary);
   $("#homeKeyword").addEventListener("input", (event) => {
     state.hotels["本店"].keyword = event.target.value.trim();
+    updateSummary();
+  });
+  $("#competitorDiscoveryMode").addEventListener("input", (event) => {
+    state.discovery.mode = event.target.value === "auto" ? "auto" : "manual";
+    renderHotelInputs();
+    $("#searchPrompt").value = "";
+    updateSummary();
+    updateCompletion();
+  });
+  Object.keys(state.discovery).forEach((key) => {
+    if (key === "mode") return;
+    const input = document.getElementById(`discovery${key[0].toUpperCase()}${key.slice(1)}`);
+    if (!input) return;
+    input.addEventListener("input", () => {
+      state.discovery[key] = key === "maxDistanceKm" ? Number(input.value || 0) : input.value.trim();
+      updateSummary();
+    });
   });
   Object.keys(state.query).forEach((key) => {
     const input = document.getElementById(key);
@@ -186,8 +221,7 @@ function updateLoginPrompt() {
   $("#loginPrompt").value = `请只使用 playwright-browser 真实浏览器 MCP，打开携程首页 https://www.ctrip.com/ 或任意携程酒店详情页。打开后停止自动操作，提示我用微信或携程 App 扫码登录。不要输入账号、密码、手机号、短信验证码，不要处理滑块。等我告诉你“已登录”后，再打开一页携程酒店详情页，检查房型价格是否可见。如果价格可见，回复“登录态验证通过”；如果仍显示“解锁优惠/登录后查看”，回复“携程会话未生效，请重新扫码”。`;
 }
 
-function buildCandidateSearchPrompt() {
-  const roles = buildRoles(state.competitorCount);
+function buildManualDiscoveryInstructions(roles) {
   const hotelLines = roles
     .map((role) => {
       const item = state.hotels[role];
@@ -197,13 +231,7 @@ function buildCandidateSearchPrompt() {
     })
     .join("\n");
 
-  return `请只使用 playwright-browser 真实浏览器 MCP，在携程国内站搜索酒店候选，不要使用 fetch、WebFetch、curl、requests 或任何纯 HTTP 抓取方式。
-
-城市：${state.city}
-
-竞对数量：${state.competitorCount} 家
-
-待确认酒店总数：${roles.length} 家（本店 1 家，竞对 ${state.competitorCount} 家）
+  return `竞对发现方式：手动指定酒店关键词
 
 待确认酒店：
 ${hotelLines}
@@ -213,10 +241,71 @@ ${hotelLines}
 2. 对每个角色分别搜索，尽量返回 3 个候选。
 3. 不登录、不输入账号密码、不绕过验证码；如果出现验证码、滑块、短信验证或风控页面，停止并说明。
 4. 每个候选需要给出：角色、候选序号、酒店名、地址、评分、hotelId、稳定链接、匹配理由。
-5. 稳定链接只保留 cityEnName/cityId/hotelId 等稳定参数，不要包含过期入住日期、tracking id 或 subStamp。
+5. 稳定链接只保留 cityEnName/cityId/hotelId 等稳定参数，不要包含过期入住日期、tracking id 或 subStamp。`;
+}
+
+function buildAutoDiscoveryInstructions(roles) {
+  const home = state.hotels["本店"];
+  const discovery = state.discovery;
+  const competitorRoles = roles.filter((role) => role !== "本店").join("、");
+  const location = discovery.location || home.keyword || `${state.city} 本店周边`;
+  const brand = discovery.brandKeywords || "优先同品牌、同集团或同档位；如果侧边栏没有合适品牌筛选，请记录原因后按同档位筛选";
+  const price = formatDiscoveryPrice(discovery.priceMin, discovery.priceMax);
+  const distance = discovery.maxDistanceKm > 0 ? `${discovery.maxDistanceKm} 公里内` : "按携程列表可用的最近距离筛选";
+  const homeKeyword = home.keyword ? `，辅助关键词：${home.keyword}` : "";
+
+  return `竞对发现方式：自动发现竞对
+
+本店：
+- 本店：${home.desiredName || "未填写"}${homeKeyword}
+
+自动发现竞对条件：
+- 位置/商圈/地标：${location}
+- 品牌筛选：${brand}
+- 价格筛选：${price}
+- 距离范围：${distance}
+- 评分筛选：优先 4.5 分及以上；如果候选不足，再放宽并说明原因
+- 竞对数量：${state.competitorCount} 家
+
+操作要求：
+1. 先搜索本店，返回本店候选，供用户确认本店页面。
+2. 再在携程酒店搜索页搜索“${location}”，进入酒店列表页。
+3. 在列表页优先使用左侧或侧边栏筛选，不要逐个乱翻：先用品牌筛选，再用价格筛选，然后结合距离、商圈、评分、酒店类型继续缩小范围。
+4. 排除本店、民宿/公寓/钟点房、明显不同定位或距离过远的酒店；如果用户品牌筛选很窄导致数量不足，保留筛选条件并说明缺口。
+5. 竞对角色必须使用：${competitorRoles}。不要输出“候选A/候选B”这类角色名。
+6. 每个竞对角色尽量返回 3 个候选，优先选择距离近、品牌/档位相近、价格带相近、评分相近、近期点评可见的酒店。
+7. 不登录、不输入账号密码、不绕过验证码；如果出现验证码、滑块、短信验证或风控页面，停止并说明。
+8. 每个候选需要给出：角色、候选序号、酒店名、地址、评分、hotelId、稳定链接、匹配理由。
+9. 稳定链接只保留 cityEnName/cityId/hotelId 等稳定参数，不要包含过期入住日期、tracking id 或 subStamp。`;
+}
+
+function buildCandidateSearchPrompt() {
+  const roles = buildRoles(state.competitorCount);
+  const instructions = state.discovery.mode === "auto"
+    ? buildAutoDiscoveryInstructions(roles)
+    : buildManualDiscoveryInstructions(roles);
+
+  return `请只使用 playwright-browser 真实浏览器 MCP，在携程国内站搜索酒店候选，不要使用 fetch、WebFetch、curl、requests 或任何纯 HTTP 抓取方式。
+
+城市：${state.city}
+
+竞对数量：${state.competitorCount} 家
+
+待确认酒店总数：${roles.length} 家（本店 1 家，竞对 ${state.competitorCount} 家）
+
+${instructions}
 
 请只输出 Markdown 表格，列名严格为：
 | 角色 | 候选序号 | 酒店名 | 地址 | 评分 | hotelId | 稳定链接 | 匹配理由 |`;
+}
+
+function formatDiscoveryPrice(min, max) {
+  const left = String(min || "").trim();
+  const right = String(max || "").trim();
+  if (left && right) return `${left}-${right} 元`;
+  if (left) return `${left} 元以上`;
+  if (right) return `${right} 元以下`;
+  return "未限制，优先选择与本店同价位或同档位";
 }
 
 function parseCandidateTable(text) {
@@ -472,9 +561,12 @@ function updatePreview() {
 function updateSummary() {
   const roles = buildRoles(state.competitorCount);
   const confirmedCount = roles.filter((role) => state.hotels[role].confirmed).length;
+  const discoveryText = state.discovery.mode === "auto"
+    ? `自动发现竞对，位置/地标：${state.discovery.location || state.hotels["本店"].keyword || "未填写"}`
+    : "手动指定竞对关键词";
   $("#summary").innerHTML = `
     <strong>当前配置</strong>
-    <p>城市：${escapeHtml(state.city)}；竞对数量：${state.competitorCount} 家；已确认酒店：${confirmedCount}/${roles.length}；默认房型：${escapeHtml(state.query.roomType)}；${state.query.rooms}间，${state.query.adults}成人，${state.query.children}儿童；未来第 ${state.query.offsetDays} 天入住，住 ${state.query.nights} 晚；每天 ${state.query.scheduleTime}；推送方式：${escapeHtml(formatPushMode(state.query.pushMode))}。</p>
+    <p>城市：${escapeHtml(state.city)}；${escapeHtml(discoveryText)}；竞对数量：${state.competitorCount} 家；已确认酒店：${confirmedCount}/${roles.length}；默认房型：${escapeHtml(state.query.roomType)}；${state.query.rooms}间，${state.query.adults}成人，${state.query.children}儿童；未来第 ${state.query.offsetDays} 天入住，住 ${state.query.nights} 晚；每天 ${state.query.scheduleTime}；推送方式：${escapeHtml(formatPushMode(state.query.pushMode))}。</p>
   `;
 }
 
