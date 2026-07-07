@@ -10,7 +10,7 @@
 4. WorkBuddy 在携程搜索候选酒店，也可以通过列表页侧边栏自动发现竞对，用户确认正确酒店。
 5. WorkBuddy 抓取价格、房型和最新点评。
 6. WorkBuddy 内置模型生成红黄绿三色经营日报。
-7. 如已配置 ClawBot 或企业微信，可把日报推送到微信侧。
+7. 默认通过微信助理 ClawBot 把日报推送到微信侧；企业微信群机器人作为可选替代。
 
 本项目不需要第三方模型接口密钥，不配置 DeepSeek/OpenAI 等外部模型，不依赖 VPN 或翻墙服务。
 
@@ -109,11 +109,11 @@ skill/                     可选的 WorkBuddy/Codex skill 说明
 
 ## 推送和定时
 
-WorkBuddy Automation 定时任务、ClawBot 或企业微信推送如果只能在桌面端 GUI 中配置，本项目不会假装自动完成。
+WorkBuddy Automation 定时任务和微信助理 ClawBot 绑定如果只能在桌面端 GUI 中配置，本项目不会假装自动完成。
 
 推送设置请看：
 
-- `docs/push-setup.md`：完整推送说明，包含个人微信 ClawBot 和企业微信群机器人。
+- `docs/push-setup.md`：完整推送说明，默认推荐微信助理 ClawBot，也包含企业微信群机器人。
 - `docs/clawbot-setup.md`：ClawBot 图形界面绑定步骤。
 
 企业微信群机器人可以用环境变量自动推送：

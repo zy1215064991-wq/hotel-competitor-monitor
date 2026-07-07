@@ -36,7 +36,7 @@ const state = {
     roomType: "大床房",
     reviewCount: 5,
     scheduleTime: "07:30",
-    pushMode: "none"
+    pushMode: "clawbot"
   },
   generated: {
     competitors: "",
@@ -405,7 +405,7 @@ function buildAutomationPrompt() {
 
 ## 硬约束
 
-- 全链路只使用国内可访问服务：WorkBuddy 内置模型、携程国内站、微信或企业微信 ClawBot。
+- 全链路只使用国内可访问服务：WorkBuddy 内置模型、携程国内站、微信助理 ClawBot 或企业微信。
 - 浏览携程必须使用已配置的真实浏览器 MCP：playwright-browser / mcp__playwright-browser。
 - playwright-browser 必须复用固定的持久化浏览器资料目录：ctrip-profile。
 - 浏览器必须使用有头模式。不要使用 headless 模式。不要添加 stealth、绕检测、绕风控或伪造登录相关参数。
@@ -447,7 +447,7 @@ function buildAutomationPrompt() {
 
 - 已登录：页面能看到房型价格，或不再出现“解锁优惠/登录后查看/登录查看更多点评/登录页重定向”，继续抓价。
 - 已掉线：不要自动重新登录，不要输入账号密码，不要改用其他平台或接口补抓携程价格；停止本次运行。
-- 已掉线时推送：携程会话已过期，请重新扫码登录后重新运行酒店竞对每日监控。
+- 已掉线时推送：优先通过微信助理 ClawBot 推送“携程会话已过期，请重新扫码登录后重新运行酒店竞对每日监控”。如果 ClawBot 未配置，不要伪造推送成功，只在最终回复说明。
 
 ## 执行顺序
 
@@ -463,13 +463,16 @@ function buildAutomationPrompt() {
 10. 任意一家查询口径不一致时，不要输出调价/跟价建议，只输出“查询口径未达成，需要重跑”。
 11. 读取 daily-prompt.md 生成红黄绿日报。
 12. 保存 reports/YYYY-MM-DD-raw.md 和 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-13. 执行推送策略。
-14. 最终回复必须包含日报全文、保存路径、抓取状态、本次实际查询口径、参数来源和推送状态。
+13. 执行最后汇报与推送策略。
+14. 最终回复必须包含保存路径、抓取状态、本次实际查询口径、参数来源、ClawBot 推送状态；如果 ClawBot 未配置或推送失败，最终回复必须包含日报全文，方便用户手动转发。
 
-## 推送策略
+## 最后汇报与推送
 
 - 如果推送方式是“只保存本地”：不要推送，只保存 reports 文件，并在最终回复里写“推送未配置”。
-- 如果推送方式是“WorkBuddy ClawBot”：最终回复必须包含完整日报全文，让 WorkBuddy Automation / ClawBot 推送最终回复；如果桌面端没有配置 ClawBot，写“ClawBot 推送未配置”。
+- 如果推送方式是“微信助理 ClawBot”：保存日报后，通过微信助理 ClawBot 推送日报全文。推送正文必须使用 reports/YYYY-MM-DD-hotel-competitor-daily.md 的完整内容，并附上本地报告路径。
+- 使用 ClawBot 时，如果 WorkBuddy Automation 的通知/推送设置支持“推送最终回复”，最终回复必须把日报全文放在最前面，便于 ClawBot 原样推送。
+- 使用 ClawBot 时，如果存在可调用的 ClawBot 发送动作或连接器，优先直接调用该动作发送日报全文；发送后在最终回复写“ClawBot 推送成功”。
+- 如果桌面端没有绑定 ClawBot、Automation 没有选择 ClawBot 通知，或发送动作不可用，不要伪造推送成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
 - 如果推送方式是“企业微信群机器人”：保存日报后，检查环境变量 HOTEL_MONITOR_WECOM_WEBHOOK。
 - 企业微信群机器人已配置时，运行：
 
@@ -573,7 +576,7 @@ function updateSummary() {
 function formatPushMode(mode) {
   return {
     none: "只保存本地",
-    clawbot: "WorkBuddy ClawBot",
+    clawbot: "微信助理 ClawBot",
     wecom: "企业微信群机器人"
   }[mode] || "只保存本地";
 }

@@ -1,32 +1,36 @@
 # 推送设置：怎么让用户收到日报
 
+默认推荐：微信助理 ClawBot。
+
 本项目支持两种推送路径：
 
-- 个人微信：使用 WorkBuddy 自带的 ClawBot 绑定能力，在 WorkBuddy 桌面端图形界面里配置。
+- 个人微信：使用 WorkBuddy 自带的微信助理 ClawBot 绑定能力，在 WorkBuddy 桌面端图形界面里配置。
 - 企业微信群：使用企业微信群机器人 webhook，通过 `scripts/push-wecom.ps1` 自动发送 Markdown 日报。
 
-两种方式可以同时保留。没有配置推送时，自动化仍会把日报保存到本地 `reports/`。
+两种方式可以同时保留。向导默认选择微信助理 ClawBot；没有配置推送时，自动化仍会把日报保存到本地 `reports/`，并在最终回复里说明没有推送成功。
 
-## 方式一：个人微信 ClawBot
+## 方式一：微信助理 ClawBot
 
-适合个人使用，优点是不用自己维护 webhook。
+适合个人使用，优点是不用自己维护 webhook。日报生成后，WorkBuddy 会把最后汇报通过微信助理 ClawBot 推送到微信侧。
 
 步骤：
 
 1. 打开 WorkBuddy。
 2. 打开左侧 Claw 面板。
 3. 点击设置图标。
-4. 找到微信 ClawBot 集成。
+4. 找到微信助理 ClawBot 集成。
 5. 点击配置。
 6. 用微信扫码绑定。
 7. 等状态显示已连接或已绑定。
-8. 创建 Automation 时，在通知或推送方式里选择 ClawBot、微信或最终回复推送。
+8. 创建 Automation 时，在通知或推送方式里选择微信助理 ClawBot、微信或最终回复推送。
+9. 推送内容选择“最终回复”或“完整任务结果”。这样 `automation-prompt.md` 里的日报全文会被原样推送。
 
 注意：
 
 - 这一步必须在 WorkBuddy 图形界面里完成。
 - 不要让自动化模拟微信登录。
 - 如果 WorkBuddy 版本没有 ClawBot 推送入口，就只使用企业微信群机器人方式。
+- 如果没有绑定 ClawBot，自动化不能假装推送成功；它会保存本地报告，并在最终回复里提示你去绑定 ClawBot。
 
 ## 方式二：企业微信群机器人
 
@@ -100,8 +104,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -Re
 Automation prompt 已经包含推送策略：
 
 1. 先生成并保存 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
-2. 如果环境变量 `HOTEL_MONITOR_WECOM_WEBHOOK` 存在，运行 `scripts/push-wecom.ps1` 推送。
-3. 如果没有配置 webhook，只在本地保存日报，并在最终回复里说明“推送未配置”。
+2. 默认通过微信助理 ClawBot 推送日报全文。
+3. 如果选择企业微信群机器人，并且环境变量 `HOTEL_MONITOR_WECOM_WEBHOOK` 存在，运行 `scripts/push-wecom.ps1` 推送。
+4. 如果没有配置对应推送渠道，只在本地保存日报，并在最终回复里说明“推送未配置”。
 
 ## 常见问题
 
@@ -134,4 +139,4 @@ https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=
 
 ### 能不能推个人微信
 
-个人微信不要走脚本和 webhook。个人微信请用 WorkBuddy 自带的 ClawBot 绑定能力，在图形界面扫码绑定。
+个人微信不要走脚本和 webhook。个人微信请用 WorkBuddy 自带的微信助理 ClawBot 绑定能力，在图形界面扫码绑定。
