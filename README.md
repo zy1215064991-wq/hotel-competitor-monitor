@@ -121,6 +121,14 @@ data/verify-local-latest.md
 
 同样优先看顶部的 `ReadyForDryRun`、`ReadyForFormalRun` 和 `BlockingIssues`。
 
+开发者也可以用标准测试入口：
+
+```powershell
+npm test
+```
+
+它只运行本地 `.test.mjs` 测试，不触发 `run-once.ps1 -Formal`，也不调用高德、FlyAI 或百度正式 API。
+
 9. 正式运行：
 
 ```powershell
