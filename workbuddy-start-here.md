@@ -43,7 +43,7 @@ Get-Command flyai
 npm i -g @fly-ai/flyai-cli --registry=https://registry.npmmirror.com
 ```
 
-6. 打开 `app/index.html`，让我填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、候选池上限、百度补充数量、分层规则和历史对比设置。
+6. 打开 `app/index.html`，让我填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、候选池上限、百度补充数量、百度缓存/每日调用上限、分层规则和历史对比设置。
 7. 让我下载或生成 `config/hotel-monitor.json`。
 8. 先跑 DryRun：
 
@@ -58,12 +58,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 ```
 
 10. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
-11. 检查 `Tier Rules`：日报解释分层时必须尊重用户配置。
-12. 优先检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；没有历史时说明“首次运行，无同口径历史”。
-13. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
-14. 默认用微信助理 ClawBot 推送日报全文。
-15. 如果 ClawBot 未配置，不要伪造推送成功；贴出日报全文，并指导我在 WorkBuddy GUI 里绑定 ClawBot。
-16. 首次手动跑通后，再指导我创建 Automation，每天 07:30 运行。
+11. 检查 `Baidu Usage`：说明百度缓存命中、真实调用次数、每日上限和被限额跳过数量。
+12. 检查 `Tier Rules`：日报解释分层时必须尊重用户配置。
+13. 优先检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；没有历史时说明“首次运行，无同口径历史”。
+14. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
+15. 默认用微信助理 ClawBot 推送日报全文。
+16. 如果 ClawBot 未配置，不要伪造推送成功；贴出日报全文，并指导我在 WorkBuddy GUI 里绑定 ClawBot。
+17. 首次手动跑通后，再指导我创建 Automation，每天 07:30 运行。
 
 ## 停止条件
 

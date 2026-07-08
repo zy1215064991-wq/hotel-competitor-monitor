@@ -52,6 +52,15 @@ FlyAI/飞猪适合查询入住日期下的价格信号：
 
 这些字段用来判断“品质压力”：不是谁离得近、谁便宜就是核心竞品，高评分、高评论数、设施/卫生/服务更强的酒店，也可能对本店形成品质压力。
 
+为了省百度额度，项目默认启用本地缓存：
+
+- `baidu.cacheEnabled`：默认 `true`。
+- `baidu.cacheDirectory`：默认 `data/cache/baidu`。
+- `baidu.cacheTtlDays`：默认 30 天。
+- `baidu.dailyCallLimit`：默认每天最多 20 次真实百度 HTTP 调用。
+
+命中缓存时不会调用百度 API。DryRun 不消耗真实百度额度。日报输入里的 `## Baidu Usage` 会显示缓存命中、真实调用次数和被限额跳过数量。
+
 ## 本地历史库用于昨日对比
 
 正式运行脚本时，会把当日结果保存为：

@@ -13,6 +13,7 @@
 - 主地图源：高德地图。
 - 价格源：FlyAI/飞猪酒店搜索。
 - 口碑补充：百度地图。
+- 百度省额度策略：默认启用本地缓存 `data/cache/baidu/`，并限制每日真实调用次数。
 - 分析模型：WorkBuddy 内置模型。
 - 推送：默认微信助理 ClawBot；企业微信群机器人作为备用。
 - 历史对比：本地 `data/history/` 保存每日同口径快照，用于判断涨价、降价、持平。
@@ -107,6 +108,10 @@ config/hotel-monitor.json
 - `discovery.maxPrice`：最高价格筛选
 - `discovery.sort`：FlyAI 排序方式
 - `baidu.enrichTopN`：百度口碑补充数量
+- `baidu.cacheEnabled`：是否启用百度口碑缓存
+- `baidu.cacheDirectory`：百度缓存目录，默认 `data/cache/baidu`
+- `baidu.cacheTtlDays`：百度缓存有效天数
+- `baidu.dailyCallLimit`：百度每日真实 HTTP 调用上限，DryRun 不消耗真实额度
 - `tierRules.coreRadiusMeters`：核心竞品半径
 - `tierRules.pricePressureRatio`：价格压力阈值，默认低于本店 75% 算价格压力
 - `tierRules.qualityRatingThreshold`：品质压力评分阈值
@@ -128,6 +133,7 @@ templates/daily-prompt.md    红黄绿日报提示词
 templates/automation-prompt.template.md WorkBuddy Automation 提示词
 docs/                        配置、数据源和推送说明
 data/                        本地 API 原始数据，已忽略
+data/cache/baidu/            本地百度口碑缓存，已忽略
 data/history/                本地每日历史快照，已忽略
 reports/                     本地日报，已忽略
 ```

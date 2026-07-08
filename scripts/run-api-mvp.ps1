@@ -129,6 +129,8 @@ function Convert-AmapCandidate {
     hygiene_rating = ""
     service_rating = ""
     image_num = ""
+    baidu_source = ""
+    baidu_cache_hit = $false
     comp_tier = ""
     reason = ""
   }
@@ -218,6 +220,112 @@ function Invoke-BaiduDetail {
   return Invoke-JsonGet -Uri $uri -OutputPath $OutputPath -DryRunText $dry
 }
 
+function Get-BaiduSetting {
+  param([pscustomobject]$Config, [string]$Name, [object]$Default)
+  if ($null -ne $Config.baidu -and $Config.baidu.PSObject.Properties[$Name] -and $null -ne $Config.baidu.$Name) {
+    return $Config.baidu.$Name
+  }
+  return $Default
+}
+
+function Get-BaiduSettings {
+  param([pscustomobject]$Config)
+  return [ordered]@{
+    enabled = [bool](Get-BaiduSetting -Config $Config -Name "enabled" -Default $true)
+    enrichTopN = [int](Get-BaiduSetting -Config $Config -Name "enrichTopN" -Default 10)
+    cacheEnabled = [bool](Get-BaiduSetting -Config $Config -Name "cacheEnabled" -Default $true)
+    cacheDirectory = [string](Get-BaiduSetting -Config $Config -Name "cacheDirectory" -Default "data/cache/baidu")
+    cacheTtlDays = [int](Get-BaiduSetting -Config $Config -Name "cacheTtlDays" -Default 30)
+    dailyCallLimit = [int](Get-BaiduSetting -Config $Config -Name "dailyCallLimit" -Default 20)
+  }
+}
+
+function Get-BaiduCacheRoot {
+  param([System.Collections.IDictionary]$Settings)
+  $directory = [string]$Settings.cacheDirectory
+  if ([System.IO.Path]::IsPathRooted($directory)) { return $directory }
+  return Join-Path $repoRoot $directory
+}
+
+function Get-Sha256Hex {
+  param([string]$Text)
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
+    $hash = $sha.ComputeHash($bytes)
+    return (($hash | ForEach-Object { $_.ToString("x2") }) -join "")
+  } finally {
+    $sha.Dispose()
+  }
+}
+
+function Get-BaiduCachePath {
+  param([pscustomobject]$Config, [System.Collections.IDictionary]$Settings, [System.Collections.IDictionary]$Candidate)
+  $root = Get-BaiduCacheRoot -Settings $Settings
+  $keyText = "$($Config.city)|$($Candidate.hotel_name)|$($Candidate.address)|$($Candidate.location)"
+  $hash = Get-Sha256Hex -Text $keyText
+  return Join-Path $root "$hash.json"
+}
+
+function Read-BaiduCacheEntry {
+  param([string]$CachePath, [int]$TtlDays)
+  if (-not (Test-Path -LiteralPath $CachePath)) { return $null }
+  try {
+    $entry = [System.IO.File]::ReadAllText($CachePath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+    if (-not $entry.cachedAt) { return $null }
+    $cachedAt = [datetime]$entry.cachedAt
+    if ($TtlDays -ge 0 -and $cachedAt -lt (Get-Date).AddDays(-1 * $TtlDays)) { return $null }
+    return $entry
+  } catch {
+    return $null
+  }
+}
+
+function Write-BaiduCacheEntry {
+  param([string]$CachePath, [System.Collections.IDictionary]$Candidate, [object]$SearchResult, [object]$DetailResult)
+  if ($DryRun) { return }
+  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $CachePath) | Out-Null
+  $entry = [ordered]@{
+    cachedAt = (Get-Date -Format s)
+    hotelName = [string]$Candidate.hotel_name
+    address = [string]$Candidate.address
+    search = $SearchResult
+    detail = $DetailResult
+  }
+  [System.IO.File]::WriteAllText($CachePath, ($entry | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
+}
+
+function New-BaiduStats {
+  param([System.Collections.IDictionary]$Settings)
+  return [ordered]@{
+    Enabled = [bool]$Settings.enabled
+    CacheEnabled = [bool]$Settings.cacheEnabled
+    CacheDirectory = [string]$Settings.cacheDirectory
+    CacheTtlDays = [int]$Settings.cacheTtlDays
+    EnrichTopN = [int]$Settings.enrichTopN
+    DailyCallLimit = [int]$Settings.dailyCallLimit
+    ApiCallsUsed = 0
+    CacheHits = 0
+    CacheMisses = 0
+    SkippedByLimit = 0
+    SkippedDisabled = 0
+  }
+}
+
+function Test-BaiduCallAllowed {
+  param([System.Collections.IDictionary]$Stats)
+  $limit = [int]$Stats.DailyCallLimit
+  if ($limit -lt 0) { return $true }
+  return ([int]$Stats.ApiCallsUsed -lt $limit)
+}
+
+function Add-BaiduApiCall {
+  param([System.Collections.IDictionary]$Stats)
+  if (-not $DryRun) {
+    $Stats.ApiCallsUsed = [int]$Stats.ApiCallsUsed + 1
+  }
+}
+
 function Normalize-HotelName {
   param([string]$Name)
   $text = $Name.ToLowerInvariant()
@@ -287,6 +395,64 @@ function Merge-BaiduInfo {
     $Candidate.hygiene_rating = [string]$info.hygiene_rating
     $Candidate.service_rating = [string]$info.service_rating
     $Candidate.image_num = [string]$info.image_num
+  }
+}
+
+function Invoke-BaiduEnrichment {
+  param(
+    [pscustomobject]$Config,
+    [string]$Ak,
+    [System.Collections.IDictionary]$Candidate,
+    [System.Collections.IDictionary]$Settings,
+    [System.Collections.IDictionary]$Stats,
+    [string]$OutputDir
+  )
+
+  if (-not $Settings.enabled) {
+    $Candidate.baidu_source = "disabled"
+    $Stats.SkippedDisabled = [int]$Stats.SkippedDisabled + 1
+    return
+  }
+
+  $cachePath = Get-BaiduCachePath -Config $Config -Settings $Settings -Candidate $Candidate
+  if ($Settings.cacheEnabled) {
+    $cacheEntry = Read-BaiduCacheEntry -CachePath $cachePath -TtlDays ([int]$Settings.cacheTtlDays)
+    if ($null -ne $cacheEntry) {
+      Merge-BaiduInfo -Candidate $Candidate -SearchResult $cacheEntry.search -DetailResult $cacheEntry.detail
+      $Candidate.baidu_source = "cache"
+      $Candidate.baidu_cache_hit = $true
+      $Stats.CacheHits = [int]$Stats.CacheHits + 1
+      return
+    }
+    $Stats.CacheMisses = [int]$Stats.CacheMisses + 1
+  }
+
+  if (-not (Test-BaiduCallAllowed -Stats $Stats)) {
+    $Candidate.baidu_source = "skipped-limit"
+    $Stats.SkippedByLimit = [int]$Stats.SkippedByLimit + 1
+    return
+  }
+
+  $safeName = ($Candidate.hotel_name -replace "[^a-zA-Z0-9_-]", "_").Trim("_")
+  if (-not $safeName) { $safeName = "candidate" }
+
+  Add-BaiduApiCall -Stats $Stats
+  $search = Invoke-BaiduSearch -Config $Config -Ak $Ak -Candidate $Candidate -OutputPath (Join-Path $OutputDir "baidu-search-$safeName.json")
+  $baiduResult = Get-BaiduHotelResult -SearchResult $search -CandidateName $Candidate.hotel_name
+  $uid = if ($null -ne $baiduResult) { [string]$baiduResult.uid } else { "" }
+  $detail = $null
+  if ($uid) {
+    if (Test-BaiduCallAllowed -Stats $Stats) {
+      Add-BaiduApiCall -Stats $Stats
+      $detail = Invoke-BaiduDetail -Ak $Ak -Uid $uid -OutputPath (Join-Path $OutputDir "baidu-detail-$safeName.json")
+    } else {
+      $Stats.SkippedByLimit = [int]$Stats.SkippedByLimit + 1
+    }
+  }
+  Merge-BaiduInfo -Candidate $Candidate -SearchResult $search -DetailResult $detail
+  $Candidate.baidu_source = if ($DryRun) { "dryrun" } elseif ($detail) { "api" } else { "api-partial" }
+  if ($Settings.cacheEnabled -and ($search -or $detail)) {
+    Write-BaiduCacheEntry -CachePath $cachePath -Candidate $Candidate -SearchResult $search -DetailResult $detail
   }
 }
 
@@ -562,6 +728,7 @@ function Write-ReportInput {
     [System.Collections.IDictionary]$Dates,
     [System.Collections.IDictionary]$HomeHotel,
     [array]$Candidates,
+    [System.Collections.IDictionary]$BaiduStats,
     [object]$HistoryComparison,
     [string]$HistorySnapshotPath,
     [string]$OutputDir
@@ -603,6 +770,21 @@ function Write-ReportInput {
     "- QualityRadiusMeters: $($tierRules.qualityRadiusMeters)",
     "- IncludeAlternativeLodging: $($tierRules.includeAlternativeLodging)",
     "",
+    "## Baidu Usage",
+    "",
+    "- Enabled: $($BaiduStats.Enabled)",
+    "- CacheEnabled: $($BaiduStats.CacheEnabled)",
+    "- CacheDirectory: $($BaiduStats.CacheDirectory)",
+    "- CacheTtlDays: $($BaiduStats.CacheTtlDays)",
+    "- EnrichTopN: $($BaiduStats.EnrichTopN)",
+    "- DailyCallLimit: $($BaiduStats.DailyCallLimit)",
+    "- ApiCallsUsed: $($BaiduStats.ApiCallsUsed)",
+    "- CacheHits: $($BaiduStats.CacheHits)",
+    "- CacheMisses: $($BaiduStats.CacheMisses)",
+    "- SkippedByLimit: $($BaiduStats.SkippedByLimit)",
+    "- SkippedDisabled: $($BaiduStats.SkippedDisabled)",
+    "- DryRunNote: DryRun does not consume real Baidu API quota.",
+    "",
     "## Data Sources",
     "",
     "- 高德：本店定位、周边候选、距离、商圈、档位、评分",
@@ -621,11 +803,11 @@ function Write-ReportInput {
     "",
     "## Candidates",
     "",
-    "| 分层 | 酒店名 | 距离m | 飞猪价 | 高德评分 | 百度评分 | 评论数 | 类型 | 理由 |",
-    "| --- | --- | ---: | --- | --- | --- | --- | --- | --- |"
+    "| 分层 | 酒店名 | 距离m | 飞猪价 | 高德评分 | 百度评分 | 评论数 | 百度来源 | 类型 | 理由 |",
+    "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |"
   )
   foreach ($candidate in $Candidates) {
-    $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.hotel_type) | $($candidate.reason) |"
+    $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.baidu_source) | $($candidate.hotel_type) | $($candidate.reason) |"
   }
   $lines += ""
   $lines += "## Yesterday Comparison"
@@ -691,19 +873,11 @@ foreach ($candidate in $candidates) {
   Merge-FlyAIPrice -Candidate $candidate -FlyResult $flyResult
 }
 
-$baiduLimit = if ($config.baidu.enrichTopN) { [int]$config.baidu.enrichTopN } else { 10 }
-$baiduTargets = $candidates | Sort-Object distance_m | Select-Object -First $baiduLimit
+$baiduSettings = Get-BaiduSettings -Config $config
+$baiduStats = New-BaiduStats -Settings $baiduSettings
+$baiduTargets = $candidates | Sort-Object distance_m | Select-Object -First ([int]$baiduSettings.enrichTopN)
 foreach ($candidate in $baiduTargets) {
-  $safeName = ($candidate.hotel_name -replace "[^a-zA-Z0-9_-]", "_").Trim("_")
-  if (-not $safeName) { $safeName = "candidate" }
-  $search = Invoke-BaiduSearch -Config $config -Ak $baiduAk -Candidate $candidate -OutputPath (Join-Path $outputDir "baidu-search-$safeName.json")
-  $baiduResult = Get-BaiduHotelResult -SearchResult $search -CandidateName $candidate.hotel_name
-  $uid = if ($null -ne $baiduResult) { [string]$baiduResult.uid } else { "" }
-  $detail = $null
-  if ($uid) {
-    $detail = Invoke-BaiduDetail -Ak $baiduAk -Uid $uid -OutputPath (Join-Path $outputDir "baidu-detail-$safeName.json")
-  }
-  Merge-BaiduInfo -Candidate $candidate -SearchResult $search -DetailResult $detail
+  Invoke-BaiduEnrichment -Config $config -Ak $baiduAk -Candidate $candidate -Settings $baiduSettings -Stats $baiduStats -OutputDir $outputDir
 }
 
 $homePrice = Get-PriceNumber -Price $homeCandidate.fliggy_price
@@ -724,7 +898,7 @@ if ([string]::IsNullOrWhiteSpace($historySnapshotPath)) {
 [System.IO.File]::WriteAllText((Join-Path $outputDir "history-snapshot.json"), ($historySnapshot | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
 [System.IO.File]::WriteAllText((Join-Path $outputDir "history-comparison.json"), ($historyComparison | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
 
-$reportInput = Write-ReportInput -Config $config -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates -HistoryComparison $historyComparison -HistorySnapshotPath $historySnapshotPath -OutputDir $outputDir
+$reportInput = Write-ReportInput -Config $config -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates -BaiduStats $baiduStats -HistoryComparison $historyComparison -HistorySnapshotPath $historySnapshotPath -OutputDir $outputDir
 
 Write-Host "API combo MVP input generated."
 Write-Host "Output directory: $outputDir"

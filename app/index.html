@@ -72,6 +72,21 @@
           <label class="field"><span>儿童数</span><input id="children" type="number" min="0" value="0"></label>
           <label class="field"><span>竞对数量</span><input id="competitorCount" type="number" min="1" max="20" value="5"></label>
           <label class="field"><span>百度补充数量</span><input id="baiduEnrichTopN" type="number" min="0" max="30" value="10"></label>
+          <label class="field"><span>百度接口开关</span>
+            <select id="baiduEnabled">
+              <option value="true" selected>启用</option>
+              <option value="false">关闭</option>
+            </select>
+          </label>
+          <label class="field"><span>百度缓存</span>
+            <select id="baiduCacheEnabled">
+              <option value="true" selected>启用缓存</option>
+              <option value="false">不用缓存</option>
+            </select>
+          </label>
+          <label class="field"><span>百度每日调用上限</span><input id="baiduDailyCallLimit" type="number" min="0" value="20"></label>
+          <label class="field"><span>百度缓存天数</span><input id="baiduCacheTtlDays" type="number" min="0" value="30"></label>
+          <label class="field"><span>百度缓存目录</span><input id="baiduCacheDirectory" value="data/cache/baidu"></label>
           <label class="field"><span>启用历史对比</span>
             <select id="historyEnabled">
               <option value="true" selected>启用</option>

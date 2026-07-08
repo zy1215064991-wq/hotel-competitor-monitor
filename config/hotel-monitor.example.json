@@ -25,7 +25,12 @@
     "excludeNameKeywords": ["停车场", "大堂", "前台", "写字楼", "商场", "公寓入口"]
   },
   "baidu": {
-    "enrichTopN": 10
+    "enabled": true,
+    "enrichTopN": 10,
+    "cacheEnabled": true,
+    "cacheDirectory": "data/cache/baidu",
+    "cacheTtlDays": 30,
+    "dailyCallLimit": 20
   },
   "tierRules": {
     "coreRadiusMeters": 2000,

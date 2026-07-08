@@ -80,8 +80,8 @@ if ($SkipFlyAICommandCheck) {
 }
 
 Write-Step "Create local output directories"
-New-Item -ItemType Directory -Force -Path (Join-Path $repoRoot "data\api-combo"), (Join-Path $repoRoot "data\history"), (Join-Path $repoRoot "reports") | Out-Null
-Write-Host "[ok] data/api-combo, data/history and reports directories are ready."
+New-Item -ItemType Directory -Force -Path (Join-Path $repoRoot "data\api-combo"), (Join-Path $repoRoot "data\cache\baidu"), (Join-Path $repoRoot "data\history"), (Join-Path $repoRoot "reports") | Out-Null
+Write-Host "[ok] data/api-combo, data/cache/baidu, data/history and reports directories are ready."
 
 Write-Step "DryRun command"
 Write-Host "powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -DryRun"

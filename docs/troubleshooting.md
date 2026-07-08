@@ -42,6 +42,25 @@ DryRun 只验证本地配置和输出链路，不调用真实 API。正式运行
 - FlyAI 失败：检查 `FLYAI_API_KEY` 是否有效、`flyai search-hotel` 是否可用。
 - 百度失败：检查 `BAIDU_MAP_AK` 是否有地点检索/详情权限、是否达到并发或配额限制。
 
+如果百度额度紧张，先把 `config/hotel-monitor.json` 里的 `baidu.dailyCallLimit` 调小，甚至设为 `0`。脚本会跳过百度补充，但高德候选、FlyAI 价格、历史对比仍能继续跑。
+
+```json
+"baidu": {
+  "enabled": true,
+  "enrichTopN": 10,
+  "cacheEnabled": true,
+  "cacheDirectory": "data/cache/baidu",
+  "cacheTtlDays": 30,
+  "dailyCallLimit": 0
+}
+```
+
+查看本次百度使用情况：
+
+```powershell
+Select-String -Path .\data\api-combo\api-combo-latest-report-input.md -Pattern "## Baidu Usage" -Context 0,12
+```
+
 ## 价格显示脱敏
 
 如果 FlyAI 返回 `¥1xx`、`¥3x` 这类价格，只能当作价格带信号。通常说明 Key、权限或返回字段不完整。不要把脱敏价格写成精确价格结论。
