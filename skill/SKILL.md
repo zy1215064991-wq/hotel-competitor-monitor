@@ -12,16 +12,18 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 1. 确认用户在 Windows 电脑上，并已安装 WorkBuddy。
 2. 检查 `AMAP_API_KEY`、`FLYAI_API_KEY`、`BAIDU_MAP_AK` 三个 Windows 环境变量是否存在。
 3. 检查 `flyai` CLI 是否可用。
-4. 打开 `app/index.html`，引导用户填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、百度补充数量。
-5. 生成或确认 `config/hotel-monitor.json`。
-6. 先运行 `scripts/run-api-mvp.ps1 -DryRun`。
-7. DryRun 成功后运行 `scripts/run-api-mvp.ps1`。
-8. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
-9. 检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；首次运行没有历史时只做今日横截面。
-10. 使用 WorkBuddy 内置模型生成红黄绿日报。
-11. 保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
-12. 默认通过微信助理 ClawBot 推送；如果 ClawBot 未配置，贴出日报全文并说明未推送。
-13. 首次手动跑通后，再帮助用户创建每天 07:30 的 WorkBuddy 自动化任务。
+4. 运行 `install.ps1` 做零额度本地体检，读取 `data/setup-check-latest.md`。
+5. 如果 `config shape` 是 `warning`，询问用户是否允许运行 `install.ps1 -RepairConfigFromExample` 补齐旧配置字段。
+6. 打开 `app/index.html`，引导用户填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、百度补充数量。
+7. 生成或确认 `config/hotel-monitor.json`。
+8. 先运行 `scripts/run-api-mvp.ps1 -DryRun`。
+9. DryRun 成功后运行 `scripts/run-api-mvp.ps1`。
+10. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
+11. 检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；首次运行没有历史时只做今日横截面。
+12. 使用 WorkBuddy 内置模型生成红黄绿日报。
+13. 保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
+14. 默认通过微信助理 ClawBot 推送；如果 ClawBot 未配置，贴出日报全文并说明未推送。
+15. 首次手动跑通后，读取 `docs/automation-setup.md`，再帮助用户创建每天 07:30 的 WorkBuddy 自动化任务。
 
 ## 约束
 
@@ -32,6 +34,7 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 - 不把 `AMAP_API_KEY`、`FLYAI_API_KEY`、`BAIDU_MAP_AK` 写进任何文件、聊天回复、报告或 GitHub。
 - 不提交 `config/hotel-monitor.json`、`data/`、`reports/` 或任何密钥。
 - 遇到 API 鉴权、额度、并发或 CLI 错误时停止并说明，不编造数据。
+- `install.ps1` 和 DryRun 不应消耗高德、FlyAI 或百度正式调用额度。
 
 ## 常用提示词
 
@@ -39,6 +42,12 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 
 ```text
 请阅读 workbuddy-start-here.md，并按步骤帮我部署酒店竞对每日监控 API 组合版。不要写入任何 Key 明文；缺少环境变量时停下来提醒我配置。
+```
+
+自动化：
+
+```text
+请阅读 docs/automation-setup.md，指导我在 WorkBuddy GUI 中创建每天 07:30 的酒店竞对每日监控 Automation。使用低成本内置模型，推送优先选微信助理 ClawBot；如果 ClawBot 未配置，不要伪造推送成功。
 ```
 
 单次运行：

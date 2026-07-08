@@ -20,6 +20,8 @@ WorkBuddy 的推送需要在桌面端 UI 中配置，不能由脚本代替你扫
 
 ## Automation 中启用推送
 
+详细的每日定时任务创建步骤见 `docs/automation-setup.md`。
+
 创建酒店竞对每日监控 Automation 时，通知方式优先选择微信助理 ClawBot。推送内容选择最终回复或完整任务结果，让日报全文能被推到微信侧。
 
 如果还没配置推送，自动化仍会把日报保存到本地 `reports/`。

@@ -79,7 +79,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 19. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
 20. 默认用微信助理 ClawBot 推送日报全文。
 21. 如果 ClawBot 未配置，不要伪造推送成功；贴出日报全文，并指导我在 WorkBuddy GUI 里绑定 ClawBot。
-22. 首次手动跑通后，再指导我创建 Automation，每天 07:30 运行。
+22. 首次手动跑通后，读取 `docs/automation-setup.md`，指导我在 WorkBuddy GUI 里创建 Automation，每天 07:30 运行。
 
 ## 停止条件
 

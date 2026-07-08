@@ -182,4 +182,5 @@ reports/                     本地日报，已忽略
 - `docs/amap-setup.md`：高德 Web 服务 Key 配置。
 - `docs/baidu-setup.md`：百度 AK、缓存和每日调用上限配置。
 - `docs/data-sources.md`：为什么选择高德 + FlyAI/飞猪 + 百度。
+- `docs/automation-setup.md`：WorkBuddy 每天 07:30 自动化任务设置。
 - `docs/push-setup.md`：ClawBot 和企业微信推送。

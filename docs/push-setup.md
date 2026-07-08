@@ -101,6 +101,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -Re
 
 ### 4. 在 WorkBuddy Automation 里启用
 
+详细的 Automation 创建步骤见 `docs/automation-setup.md`。
+
 Automation prompt 已经包含推送策略：
 
 1. 先生成并保存 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。

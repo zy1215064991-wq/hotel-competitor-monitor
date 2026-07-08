@@ -155,4 +155,10 @@ data/history/YYYY-MM-DD.json
 
 生成日报后保存到 `reports/`，默认通过微信助理 ClawBot 推送。
 
+每天 07:30 的 WorkBuddy Automation 设置见：
+
+```text
+docs/automation-setup.md
+```
+
 详细推送配置见 `docs/push-setup.md`。
