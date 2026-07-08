@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$ConfigPath = ".\config\hotel-monitor.json",
   [switch]$CreateConfigFromExample,
   [switch]$SkipFlyAICommandCheck
@@ -22,18 +22,38 @@ function Write-Step {
   Write-Host "==> $Text"
 }
 
-Write-Host "Hotel competitor monitor FlyAI MVP installer"
+function Test-PrivateEnv {
+  param(
+    [string]$Name,
+    [string]$Hint
+  )
+
+  $value = [Environment]::GetEnvironmentVariable($Name, "Process")
+  if ([string]::IsNullOrWhiteSpace($value)) {
+    $value = [Environment]::GetEnvironmentVariable($Name, "User")
+  }
+
+  if ([string]::IsNullOrWhiteSpace($value)) {
+    Write-Warning "$Name is missing. Set it with: setx $Name `"$Hint`""
+    return $false
+  }
+
+  Write-Host "[ok] $Name is configured."
+  return $true
+}
+
+Write-Host "Hotel competitor monitor API combo installer"
 Write-Host "Project directory: $repoRoot"
 
-Write-Step "Check private FlyAI key"
-$apiKey = [Environment]::GetEnvironmentVariable("FLYAI_API_KEY", "Process")
-if ([string]::IsNullOrWhiteSpace($apiKey)) {
-  $apiKey = [Environment]::GetEnvironmentVariable("FLYAI_API_KEY", "User")
-}
-if ([string]::IsNullOrWhiteSpace($apiKey)) {
-  Write-Warning "FLYAI_API_KEY is missing. Set it with: setx FLYAI_API_KEY `"your_key`""
-} else {
-  Write-Host "[ok] FLYAI_API_KEY is configured."
+Write-Step "Check private API keys"
+$hasAmap = Test-PrivateEnv -Name "AMAP_API_KEY" -Hint "your_amap_key"
+$hasFlyai = Test-PrivateEnv -Name "FLYAI_API_KEY" -Hint "your_flyai_key"
+$hasBaidu = Test-PrivateEnv -Name "BAIDU_MAP_AK" -Hint "your_baidu_ak"
+
+if (-not ($hasAmap -and $hasFlyai -and $hasBaidu)) {
+  Write-Host ""
+  Write-Host "FlyAI Key can be obtained here: https://flyai.open.fliggy.com/#ability"
+  Write-Host "After setting env vars, reopen WorkBuddy or PowerShell before running the workflow."
 }
 
 Write-Step "Check local config"
@@ -43,7 +63,7 @@ if (-not (Test-Path -LiteralPath $targetConfig)) {
     Write-Host "[created] $targetConfig"
   } else {
     Write-Warning "Config file missing: $targetConfig"
-    Write-Host "Create it from: $exampleConfig"
+    Write-Host "Create it from the local wizard app/index.html or from: $exampleConfig"
   }
 } else {
   Write-Host "[ok] Config file exists: $targetConfig"
@@ -55,15 +75,16 @@ if ($SkipFlyAICommandCheck) {
 } elseif (Get-Command "flyai" -ErrorAction SilentlyContinue) {
   Write-Host "[ok] flyai CLI found."
 } else {
-  Write-Warning "flyai CLI was not found in PATH. Install it before formal runs."
+  Write-Warning "flyai CLI was not found in PATH. Install it before formal runs:"
+  Write-Host "npm i -g @fly-ai/flyai-cli --registry=https://registry.npmmirror.com"
 }
 
 Write-Step "Create local output directories"
-New-Item -ItemType Directory -Force -Path (Join-Path $repoRoot "data\flyai"), (Join-Path $repoRoot "reports") | Out-Null
-Write-Host "[ok] data/flyai and reports directories are ready."
+New-Item -ItemType Directory -Force -Path (Join-Path $repoRoot "data\api-combo"), (Join-Path $repoRoot "reports") | Out-Null
+Write-Host "[ok] data/api-combo and reports directories are ready."
 
 Write-Step "DryRun command"
-Write-Host "powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1 -DryRun"
+Write-Host "powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -DryRun"
 
 Write-Host ""
 Write-Host "Install check completed. No OTA login is required for this MVP."

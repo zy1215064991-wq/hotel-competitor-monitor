@@ -1,22 +1,22 @@
 # WorkBuddy Start Here
 
-你是我的 WorkBuddy 配置助手。请按本文件一步步帮我部署“酒店竞对每日监控 FlyAI MVP”，不要一次性假装完成。
+你是我的 WorkBuddy 配置助手。请按本文件一步步帮我部署“酒店竞对每日监控 API 组合版”，不要一次性假装完成。
 
 ## MVP 目标
 
 只跑通这一条链路：
 
 ```text
-FlyAI/飞猪酒店搜索 -> WorkBuddy 内置模型分析 -> 微信助理 ClawBot 推送
+高德地图候选池 -> FlyAI/飞猪价格 -> 百度地图口碑补充 -> WorkBuddy 内置模型分析 -> 微信助理 ClawBot 推送
 ```
 
 ## 硬约束
 
-- 全链路只使用国内可访问服务：FlyAI/飞猪、WorkBuddy 内置模型、微信助理 ClawBot，可选企业微信。
-- 不使用浏览器自动化作为主流程。
-- 不要求用户登录 OTA 网站。
+- 全链路只使用国内可访问服务：高德地图、FlyAI/飞猪、百度地图、WorkBuddy 内置模型、微信助理 ClawBot，可选企业微信。
+- 不使用 OTA 网页浏览器自动化作为主流程。
+- 不要求用户登录携程、飞猪、美团、去哪儿等 OTA 网站。
 - 不创建或修改 WorkBuddy 的 `models.json`。
-- FLYAI_API_KEY 只能从 Windows 环境变量读取，不要写进项目文件、聊天回复、报告或 GitHub。
+- `AMAP_API_KEY`、`FLYAI_API_KEY`、`BAIDU_MAP_AK` 只能从 Windows 环境变量读取，不要写进项目文件、聊天回复、报告或 GitHub。
 - 需要用户配置环境变量、WorkBuddy Automation、ClawBot 推送时，停下来让我手动操作。
 
 ## 你要执行的步骤
@@ -25,35 +25,50 @@ FlyAI/飞猪酒店搜索 -> WorkBuddy 内置模型分析 -> 微信助理 ClawBot
 2. 检查环境变量：
 
 ```powershell
+if ($env:AMAP_API_KEY) { "AMAP_API_KEY 已配置" } else { "缺少 AMAP_API_KEY" }
 if ($env:FLYAI_API_KEY) { "FLYAI_API_KEY 已配置" } else { "缺少 FLYAI_API_KEY" }
+if ($env:BAIDU_MAP_AK) { "BAIDU_MAP_AK 已配置" } else { "缺少 BAIDU_MAP_AK" }
 ```
 
-3. 如果缺少 FLYAI_API_KEY，停下来让我配置，不要要求我把 Key 发给你或写进文件。
-4. 打开 `app/index.html`，让我填写本店、城市、POI、入住口径、竞对数量、品牌补漏。
-5. 让我下载或生成 `config/hotel-monitor.json`。
-6. 先跑 DryRun：
+3. 如果缺少任意 Key，停下来让我配置，不要要求我把 Key 发给你或写进文件。
+4. 检查 FlyAI CLI：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1 -DryRun
+Get-Command flyai
 ```
 
-7. DryRun 成功后，再跑正式采集：
+5. 如果 `flyai` 不存在，提示我安装：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1
+npm i -g @fly-ai/flyai-cli --registry=https://registry.npmmirror.com
 ```
 
-8. 读取 `data/flyai/latest-report-input.md` 和 `templates/daily-prompt.md`。
-9. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
-10. 默认用微信助理 ClawBot 推送日报全文。
-11. 如果 ClawBot 未配置，不要伪造推送成功；贴出日报全文，并指导我在 WorkBuddy GUI 里绑定 ClawBot。
-12. 首次手动跑通后，再指导我创建 Automation，每天 07:30 运行。
+6. 打开 `app/index.html`，让我填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、候选池上限、百度补充数量。
+7. 让我下载或生成 `config/hotel-monitor.json`。
+8. 先跑 DryRun：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -DryRun
+```
+
+9. DryRun 成功后，再跑正式采集：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
+```
+
+10. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
+11. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
+12. 默认用微信助理 ClawBot 推送日报全文。
+13. 如果 ClawBot 未配置，不要伪造推送成功；贴出日报全文，并指导我在 WorkBuddy GUI 里绑定 ClawBot。
+14. 首次手动跑通后，再指导我创建 Automation，每天 07:30 运行。
 
 ## 停止条件
 
 遇到以下情况必须停止并告诉我：
 
-- FLYAI_API_KEY 缺失。
+- 任意 Key 缺失。
 - `flyai` CLI 不存在或命令运行失败。
+- 高德、FlyAI 或百度 API 返回鉴权错误、额度错误、并发错误。
 - WorkBuddy Automation 或 ClawBot 只能在桌面端 GUI 配置。
 - 任意一步需要境外服务或 VPN。

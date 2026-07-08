@@ -1,71 +1,85 @@
 # 排障说明
 
-## WorkBuddy 找不到 playwright-browser
+## 缺少 API Key
 
-运行：
+脚本正式运行需要：
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-workbuddy.ps1
-```
+- `AMAP_API_KEY`
+- `FLYAI_API_KEY`
+- `BAIDU_MAP_AK`
 
-如果 `.mcp.json` 或 `mcp.json` 缺失，重新运行：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-workbuddy-mcp.ps1
-```
-
-然后完全退出并重启 WorkBuddy。
-
-## 浏览器找不到
-
-安装脚本默认使用 `auto` 模式：优先使用 Chrome，未安装 Chrome 时回退 Edge。
-
-常见 Chrome 路径：
-
-```text
-C:\Program Files\Google\Chrome\Application\chrome.exe
-C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
-C:\Users\<用户名>\AppData\Local\Google\Chrome\Application\chrome.exe
-```
-
-常见 Edge 路径：
-
-```text
-C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
-C:\Program Files\Microsoft\Edge\Application\msedge.exe
-```
-
-如果想强制使用某个浏览器：
+检查方式：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Browser chrome
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Browser edge
+if ($env:AMAP_API_KEY) { "AMAP_API_KEY 已配置" } else { "缺少 AMAP_API_KEY" }
+if ($env:FLYAI_API_KEY) { "FLYAI_API_KEY 已配置" } else { "缺少 FLYAI_API_KEY" }
+if ($env:BAIDU_MAP_AK) { "BAIDU_MAP_AK 已配置" } else { "缺少 BAIDU_MAP_AK" }
 ```
 
-## 携程显示验证码、滑块或短信验证
+不要把 Key 明文打印到群里、报告里或 GitHub。
 
-停止自动化。不要绕过验证。请人工完成登录或等待风控解除后再运行。
+## FlyAI CLI 不存在
 
-## 价格显示“解锁优惠”
+正式采集价格前需要能运行 `flyai`：
 
-说明当前携程会话没有可用登录态。重新人工登录。
+```powershell
+Get-Command flyai
+```
 
-注意：Chrome 和 Edge 使用不同的登录态目录。如果从 Edge 切换到 Chrome，首次运行时需要重新人工登录一次。
+如果找不到，安装：
 
-## 酒店候选不准确
+```powershell
+npm i -g @fly-ai/flyai-cli --registry=https://registry.npmmirror.com
+```
 
-在输入酒店名时增加地址、地铁站、商圈、机场/车站等辅助关键词。候选必须由用户确认后才能保存。
+安装后重新打开 WorkBuddy 或 PowerShell。
+
+## DryRun 成功但正式运行失败
+
+DryRun 只验证本地配置和输出链路，不调用真实 API。正式运行失败时按来源排查：
+
+- 高德失败：检查 `AMAP_API_KEY` 是否有 Web 服务权限、是否达到配额。
+- FlyAI 失败：检查 `FLYAI_API_KEY` 是否有效、`flyai search-hotel` 是否可用。
+- 百度失败：检查 `BAIDU_MAP_AK` 是否有地点检索/详情权限、是否达到并发或配额限制。
+
+## 价格显示脱敏
+
+如果 FlyAI 返回 `¥1xx`、`¥3x` 这类价格，只能当作价格带信号。通常说明 Key、权限或返回字段不完整。不要把脱敏价格写成精确价格结论。
+
+## 候选酒店噪音多
+
+在 `config/hotel-monitor.json` 或本地向导中调整：
+
+- 缩小 `discovery.radiusMeters`。
+- 降低 `discovery.maxCandidates`。
+- 增加 `discovery.excludeNameKeywords`，例如停车场、大堂、写字楼、公寓、民宿。
+- 补充 `discovery.brandKeywords`，例如全季、汉庭、亚朵、智选假日。
 
 ## 查询口径不一致
 
-如果报告显示页面实际是 `2成人` 或日期不对，不要使用经营建议。重新运行，并在 WorkBuddy 对话里明确说：
+优先在本地向导 `app/index.html` 修改：
 
-```text
-按默认跑，确认页面是1间、1成人、0儿童
+- 入住日期或未来第几天。
+- 入住晚数。
+- 房型。
+- 成人数、儿童数、房间数。
+- 竞对数量。
+
+保存新的 `config/hotel-monitor.json` 后重新运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 ```
 
-或给出本次覆盖：
+## 推送未到微信
 
-```text
-这次查 2成人，双床房
-```
+个人微信优先使用 WorkBuddy 自带微信助理 ClawBot，需要在桌面端图形界面扫码绑定。脚本不能代替你绑定个人微信。
+
+如果使用企业微信群机器人，检查：
+
+- `HOTEL_MONITOR_WECOM_WEBHOOK` 是否存在。
+- webhook 是否完整。
+- 是否重新启动了 WorkBuddy。
+- `scripts/push-wecom.ps1 -DryRun` 是否能生成预览。
+
+详细步骤见 `docs/push-setup.md`。

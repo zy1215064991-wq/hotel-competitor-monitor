@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$ConfigPath = ".\config\hotel-monitor.json",
   [string]$OutputRoot = ".\data\flyai",
   [switch]$DryRun

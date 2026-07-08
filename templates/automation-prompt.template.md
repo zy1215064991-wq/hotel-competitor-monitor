@@ -1,34 +1,34 @@
 # 酒店竞对每日监控 Automation Prompt
 
-请用 WorkBuddy 内置模型执行本任务，不调用第三方大模型接口，不读取或要求任何模型 API Key。酒店价格数据只通过 FlyAI/飞猪 CLI 获取。
+请用 WorkBuddy 内置模型执行本任务，不调用第三方大模型接口。酒店竞对数据通过三源 API 组合获取：高德负责地图和候选池，FlyAI/飞猪负责价格，百度负责口碑补充。
 
 ## 本地文件
 
 - 本地配置：config/hotel-monitor.json
-- FlyAI 采集脚本：scripts/run-flyai-mvp.ps1
+- 组合采集脚本：scripts/run-api-mvp.ps1
 - 日报提示词：templates/daily-prompt.md
-- FlyAI 原始数据目录：data/flyai
+- API 原始数据目录：data/api-combo
 - 日报输出目录：reports
 
 ## 硬约束
 
-- 全链路只使用国内可访问服务：FlyAI/飞猪、WorkBuddy 内置模型、微信助理 ClawBot，可选企业微信。
-- FlyAI API Key 只允许从环境变量 FLYAI_API_KEY 读取，不要要求用户把 Key 写进项目文件、提示词、聊天记录、报告或 GitHub。
-- 不要浏览 OTA 网页，不要使用浏览器自动化，不要要求用户登录任何 OTA 网站。
-- 不要编造价格、距离、档位、品牌、地址或竞品分层理由。
-- 如果 FlyAI 返回脱敏价格，例如 ¥1xx，只能当作价格带信号，不要当作精确价格。
+- 全链路只使用国内可访问服务：高德地图、FlyAI/飞猪、百度地图、WorkBuddy 内置模型、微信助理 ClawBot，可选企业微信。
+- Key 只允许从环境变量读取：AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK。
+- 不要把任何 Key 写进项目文件、提示词、聊天记录、报告或 GitHub。
+- 不要浏览 OTA 网页，不要要求用户登录 OTA 网站。
+- 不要编造价格、距离、档位、评分、评论数或竞品分层理由。
 
 ## 执行顺序
 
 1. 确认 config/hotel-monitor.json 存在；如果缺失，提醒用户从 config/hotel-monitor.example.json 复制并填写。
-2. 确认环境变量 FLYAI_API_KEY 存在；如果缺失，停止并提醒用户在 Windows 环境变量里配置。
+2. 确认 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK 都存在；如果缺失，停止并提醒用户配置 Windows 环境变量。
 3. 运行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 ```
 
-4. 读取 data/flyai/latest-report-input.md。
+4. 读取 data/api-combo/api-combo-latest-report-input.md。
 5. 读取 templates/daily-prompt.md。
 6. 使用 WorkBuddy 内置模型生成红黄绿经营日报。
 7. 保存 reports/YYYY-MM-DD-hotel-competitor-daily.md。
@@ -50,8 +50,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -Re
 最终回复必须包含：
 
 - 日报全文
-- FlyAI 数据输入路径
+- API 组合数据输入路径
 - 日报保存路径
 - 查询口径
 - 推送状态
-- 如果 FlyAI 数据不完整，明确说明缺口
+- 如果高德、FlyAI 或百度任一数据不完整，明确说明缺口

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>酒店竞对监控 FlyAI MVP</title>
+    <title>酒店竞对监控 API 组合版</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
@@ -11,7 +11,7 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">WorkBuddy 本地部署包</p>
-          <h1>酒店竞对监控 FlyAI MVP</h1>
+          <h1>酒店竞对监控 API 组合版</h1>
         </div>
         <div class="status-pill">API-first</div>
       </header>
@@ -19,11 +19,11 @@
       <section class="panel is-active">
         <div class="section-head">
           <h2>基础配置</h2>
-          <p>填写本店、商圈/POI 和查询口径。向导只生成本地配置，不保存你的 FlyAI Key。</p>
+          <p>填写本店、商圈/POI、半径和查询口径。向导只生成本地配置，不保存任何 API Key。</p>
         </div>
 
         <div class="checklist">
-          <label><input type="checkbox" id="keyReady"> 已在 Windows 环境变量中配置 FLYAI_API_KEY</label>
+          <label><input type="checkbox" id="keyReady"> 已在 Windows 环境变量中配置 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK</label>
           <label><input type="checkbox" id="clawbotReady"> 已在 WorkBuddy 中绑定微信助理 ClawBot</label>
         </div>
 
@@ -34,10 +34,13 @@
           <label class="field"><span>入住偏移天数</span><input id="offsetDays" type="number" min="0" value="7"></label>
           <label class="field"><span>入住晚数</span><input id="nights" type="number" min="1" value="1"></label>
           <label class="field"><span>目标房型</span><input id="roomType" value="大床房"></label>
+          <label class="field"><span>搜索半径米</span><input id="radiusMeters" type="number" min="500" step="500" value="2000"></label>
+          <label class="field"><span>候选池上限</span><input id="maxCandidates" type="number" min="5" max="100" value="20"></label>
           <label class="field"><span>房间数</span><input id="rooms" type="number" min="1" value="1"></label>
           <label class="field"><span>成人数</span><input id="adults" type="number" min="1" value="1"></label>
           <label class="field"><span>儿童数</span><input id="children" type="number" min="0" value="0"></label>
           <label class="field"><span>竞对数量</span><input id="competitorCount" type="number" min="1" max="20" value="5"></label>
+          <label class="field"><span>百度补充数量</span><input id="baiduEnrichTopN" type="number" min="0" max="30" value="10"></label>
           <label class="field"><span>最高价格</span><input id="maxPrice" type="number" min="0" value="600"></label>
           <label class="field"><span>排序</span>
             <select id="sort">

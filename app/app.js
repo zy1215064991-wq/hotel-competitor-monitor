@@ -36,6 +36,11 @@ function buildConfigJson() {
     city: readText("city", "上海"),
     homeHotelName: readText("homeHotelName"),
     poiName: readText("poiName"),
+    dataSources: {
+      primaryMap: "amap",
+      price: "flyai",
+      reputation: "baidu"
+    },
     query: {
       offsetDays: readNumber("offsetDays", 7),
       nights: readNumber("nights", 1),
@@ -46,9 +51,15 @@ function buildConfigJson() {
     },
     discovery: {
       competitorCount: readNumber("competitorCount", 5),
+      radiusMeters: readNumber("radiusMeters", 2000),
+      maxCandidates: readNumber("maxCandidates", 20),
       brandKeywords: readBrands(),
       maxPrice: readNumber("maxPrice", 0),
-      sort: readText("sort", "distance_asc")
+      sort: readText("sort", "distance_asc"),
+      excludeNameKeywords: ["停车场", "大堂", "前台", "写字楼", "商场", "公寓入口"]
+    },
+    baidu: {
+      enrichTopN: readNumber("baiduEnrichTopN", 10)
     },
     pushMode: readText("pushMode", "clawbot")
   }, null, 2);
@@ -57,19 +68,19 @@ function buildConfigJson() {
 function buildAutomationPrompt() {
   return `# 酒店竞对每日监控 Automation Prompt
 
-请执行 FlyAI MVP 链路：运行本地脚本获取飞猪酒店数据，用 WorkBuddy 内置模型分析，并通过微信助理 ClawBot 推送。
+请执行 API 组合链路：高德生成候选池，FlyAI/飞猪补价格，百度补口碑，用 WorkBuddy 内置模型分析，并通过微信助理 ClawBot 推送。
 
 ## 执行步骤
 
-1. 确认 FLYAI_API_KEY 已配置在 Windows 环境变量。
+1. 确认 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK 已配置在 Windows 环境变量。
 2. 确认 config/hotel-monitor.json 已存在。
 3. 运行：
 
 \`\`\`powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-flyai-mvp.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-api-mvp.ps1
 \`\`\`
 
-4. 读取 data/flyai/latest-report-input.md。
+4. 读取 data/api-combo/api-combo-latest-report-input.md。
 5. 读取 templates/daily-prompt.md。
 6. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
 7. 默认通过微信助理 ClawBot 推送日报全文。
@@ -78,7 +89,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-flyai-mvp.ps
 
 - 不要浏览 OTA 网页。
 - 不要要求用户登录 OTA 网站。
-- 不要把 FLYAI_API_KEY 写入文件、报告或回复。
+- 不要把 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK 写入文件、报告或回复。
 - 如果 FlyAI 返回脱敏价格，只按价格带分析。
 - 如果 ClawBot 未配置，不要伪造推送成功，直接贴出完整日报。`;
 }
@@ -86,7 +97,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-flyai-mvp.ps
 function buildDailyPrompt() {
   return `# FlyAI/飞猪酒店竞对日报 Prompt
 
-你是酒店收益管理和竞品筛选助手。请只基于 FlyAI/飞猪搜索结果分析，不要编造数据。
+你是酒店收益管理和竞品筛选助手。请只基于高德、FlyAI/飞猪、百度 API 结果分析，不要编造数据。
 
 请按以下结构输出：
 
@@ -101,6 +112,7 @@ function buildDailyPrompt() {
 
 - 核心竞品：
 - 价格压力：
+- 品质压力：
 - 延展竞品：
 - 替代竞品：
 - 剔除或暂不纳入：
@@ -111,11 +123,11 @@ function buildDailyPrompt() {
 - 优先动作2：
 - 明天继续观察什么：
 
-约束：FlyAI/飞猪是单一渠道；脱敏价格只能作为价格带；数据不足时直接说明。`;
+约束：FlyAI/飞猪是单一价格渠道；百度口碑只用于入围候选补充；脱敏价格只能作为价格带；数据不足时直接说明。`;
 }
 
 function buildRunPrompt() {
-  return "请阅读 workbuddy-start-here.md，并按 FlyAI MVP 流程跑一次酒店竞对每日监控。先运行 scripts/run-flyai-mvp.ps1，读取 data/flyai/latest-report-input.md，再按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。";
+  return "请阅读 workbuddy-start-here.md，并按 API 组合流程跑一次酒店竞对每日监控。先运行 scripts/run-api-mvp.ps1，读取 data/api-combo/api-combo-latest-report-input.md，再按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。";
 }
 
 function generateFiles() {
