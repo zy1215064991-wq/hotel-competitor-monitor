@@ -30,14 +30,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 ```
 
 4. 读取 data/api-combo/api-combo-latest-report-input.md。
-5. 检查其中的 Baidu Usage 章节：说明百度缓存命中、真实 API 调用次数、每日上限和被限额跳过数量。
-6. 检查其中的 Tier Rules 章节：按用户配置解释核心竞品、价格压力、品质压力和替代住宿，不要用默认经验覆盖配置。
-7. 检查其中的 History / Yesterday Comparison 章节：有同口径历史时判断涨价、降价、持平；没有历史时只做今日横截面分析。
-8. 读取 templates/daily-prompt.md。
-9. 使用 WorkBuddy 内置模型生成红黄绿经营日报。
-10. 保存 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-11. 默认通过微信助理 ClawBot 推送日报全文。
-12. 如果 ClawBot 未绑定或 Automation 未启用 ClawBot 通知，不要伪造成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
+5. 检查其中的 FlyAI Usage 章节：说明价格源成功、空结果、失败、脱敏价格和 DryRun 状态。
+6. 检查其中的 Baidu Usage 章节：说明百度缓存命中、真实 API 调用次数、每日上限和被限额跳过数量。
+7. 检查其中的 Tier Rules 章节：按用户配置解释核心竞品、价格压力、品质压力和替代住宿，不要用默认经验覆盖配置。
+8. 检查其中的 History / Yesterday Comparison 章节：有同口径历史时判断涨价、降价、持平；没有历史时只做今日横截面分析。
+9. 读取 templates/daily-prompt.md。
+10. 使用 WorkBuddy 内置模型生成红黄绿经营日报。
+11. 保存 reports/YYYY-MM-DD-hotel-competitor-daily.md。
+12. 默认通过微信助理 ClawBot 推送日报全文。
+13. 如果 ClawBot 未绑定或 Automation 未启用 ClawBot 通知，不要伪造成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
 
 ## 可选企业微信备用推送
 
@@ -57,6 +58,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -Re
 - API 组合数据输入路径
 - 日报保存路径
 - 查询口径
+- FlyAI 价格源状态
 - 分层规则
 - 百度缓存和额度状态
 - 历史对比状态

@@ -65,6 +65,22 @@ Select-String -Path .\data\api-combo\api-combo-latest-report-input.md -Pattern "
 
 如果 FlyAI 返回 `¥1xx`、`¥3x` 这类价格，只能当作价格带信号。通常说明 Key、权限或返回字段不完整。不要把脱敏价格写成精确价格结论。
 
+查看 FlyAI 价格源状态：
+
+```powershell
+Select-String -Path .\data\api-combo\api-combo-latest-report-input.md -Pattern "## FlyAI Usage" -Context 0,12
+```
+
+如果频繁失败或触发风控，调大请求间隔：
+
+```json
+"flyai": {
+  "enabled": true,
+  "requestDelayMs": 1500,
+  "maxRetries": 1
+}
+```
+
 ## 候选酒店噪音多
 
 在 `config/hotel-monitor.json` 或本地向导中调整：

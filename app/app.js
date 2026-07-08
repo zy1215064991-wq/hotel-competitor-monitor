@@ -73,6 +73,11 @@ function buildConfigJson() {
       cacheTtlDays: readNumber("baiduCacheTtlDays", 30),
       dailyCallLimit: readNumber("baiduDailyCallLimit", 20)
     },
+    flyai: {
+      enabled: readBoolean("flyaiEnabled", true),
+      requestDelayMs: readNumber("flyaiRequestDelayMs", 800),
+      maxRetries: readNumber("flyaiMaxRetries", 1)
+    },
     tierRules: {
       coreRadiusMeters: readNumber("coreRadiusMeters", 2000),
       pricePressureRatio: readNumber("pricePressureRatio", 0.75),
@@ -104,12 +109,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-api-mvp.ps1
 \`\`\`
 
 4. 读取 data/api-combo/api-combo-latest-report-input.md。
-5. 检查 Baidu Usage，说明百度缓存命中、真实调用次数、每日上限和被限额跳过的情况。
-6. 检查 Tier Rules，按用户配置解释核心竞品、价格压力、品质压力和替代竞品。
-7. 读取 templates/daily-prompt.md。
-8. 优先使用其中的 History / Yesterday Comparison 判断调价；没有同口径历史时，只输出今日横截面。
-9. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-10. 默认通过微信助理 ClawBot 推送日报全文。
+5. 检查 FlyAI Usage，说明价格源是否成功、是否空结果、是否脱敏、是否 DryRun。
+6. 检查 Baidu Usage，说明百度缓存命中、真实调用次数、每日上限和被限额跳过的情况。
+7. 检查 Tier Rules，按用户配置解释核心竞品、价格压力、品质压力和替代竞品。
+8. 读取 templates/daily-prompt.md。
+9. 优先使用其中的 History / Yesterday Comparison 判断调价；没有同口径历史时，只输出今日横截面。
+10. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
+11. 默认通过微信助理 ClawBot 推送日报全文。
 
 ## 约束
 
@@ -150,7 +156,7 @@ function buildDailyPrompt() {
 - 优先动作2：
 - 明天继续观察什么：
 
-约束：FlyAI/飞猪是单一价格渠道；百度口碑只用于入围候选补充，且必须说明缓存/限额状态；有同口径历史才判断谁调价；脱敏价格只能作为价格带；数据不足时直接说明。`;
+约束：FlyAI/飞猪是单一价格渠道，必须说明价格状态；百度口碑只用于入围候选补充，且必须说明缓存/限额状态；有同口径历史才判断谁调价；脱敏价格只能作为价格带；数据不足时直接说明。`;
 }
 
 function buildRunPrompt() {

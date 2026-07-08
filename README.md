@@ -12,6 +12,7 @@
 
 - 主地图源：高德地图。
 - 价格源：FlyAI/飞猪酒店搜索。
+- FlyAI 低频策略：默认每次真实请求间隔 800ms，失败重试 1 次，并在报告中标出价格状态。
 - 口碑补充：百度地图。
 - 百度省额度策略：默认启用本地缓存 `data/cache/baidu/`，并限制每日真实调用次数。
 - 分析模型：WorkBuddy 内置模型。
@@ -112,6 +113,9 @@ config/hotel-monitor.json
 - `baidu.cacheDirectory`：百度缓存目录，默认 `data/cache/baidu`
 - `baidu.cacheTtlDays`：百度缓存有效天数
 - `baidu.dailyCallLimit`：百度每日真实 HTTP 调用上限，DryRun 不消耗真实额度
+- `flyai.enabled`：是否启用 FlyAI/飞猪价格源
+- `flyai.requestDelayMs`：正式运行时 FlyAI 请求间隔，默认 800ms
+- `flyai.maxRetries`：FlyAI 失败重试次数
 - `tierRules.coreRadiusMeters`：核心竞品半径
 - `tierRules.pricePressureRatio`：价格压力阈值，默认低于本店 75% 算价格压力
 - `tierRules.qualityRatingThreshold`：品质压力评分阈值

@@ -122,6 +122,9 @@ function Convert-AmapCandidate {
     hotel_type = $hotelType
     fliggy_price = ""
     fliggy_detail_url = ""
+    fliggy_source = ""
+    fliggy_status = ""
+    fliggy_price_quality = ""
     baidu_uid = ""
     baidu_rating = ""
     baidu_comment_num = ""
@@ -168,41 +171,127 @@ function ConvertFrom-FlyAIOutput {
   return $null
 }
 
+function Get-FlyAISetting {
+  param([pscustomobject]$Config, [string]$Name, [object]$Default)
+  if ($null -ne $Config.flyai -and $Config.flyai.PSObject.Properties[$Name] -and $null -ne $Config.flyai.$Name) {
+    return $Config.flyai.$Name
+  }
+  return $Default
+}
+
+function Get-FlyAISettings {
+  param([pscustomobject]$Config)
+  return [ordered]@{
+    enabled = [bool](Get-FlyAISetting -Config $Config -Name "enabled" -Default $true)
+    requestDelayMs = [int](Get-FlyAISetting -Config $Config -Name "requestDelayMs" -Default 800)
+    maxRetries = [int](Get-FlyAISetting -Config $Config -Name "maxRetries" -Default 1)
+  }
+}
+
+function New-FlyAIStats {
+  param([System.Collections.IDictionary]$Settings)
+  return [ordered]@{
+    Enabled = [bool]$Settings.enabled
+    RequestDelayMs = [int]$Settings.requestDelayMs
+    MaxRetries = [int]$Settings.maxRetries
+    RequestsAttempted = 0
+    ExternalCallsUsed = 0
+    Success = 0
+    EmptyResults = 0
+    Failed = 0
+    MaskedPrices = 0
+    SkippedDisabled = 0
+    DryRunResponses = 0
+  }
+}
+
+function Test-MaskedPrice {
+  param([string]$Price)
+  return ($Price -match 'x|X')
+}
+
+function Get-FlyAIResultStatus {
+  param([object]$Result)
+  if ($null -eq $Result) { return "failed" }
+  if ($null -eq $Result.data -or -not $Result.data.itemList -or @($Result.data.itemList).Count -eq 0) { return "empty" }
+  return "ok"
+}
+
+function Wait-FlyAIThrottle {
+  param([System.Collections.IDictionary]$Settings)
+  $delay = [int]$Settings.requestDelayMs
+  if (-not $DryRun -and $delay -gt 0) {
+    Start-Sleep -Milliseconds $delay
+  }
+}
+
 function Invoke-FlyAIPrice {
   param(
     [pscustomobject]$Config,
     [System.Collections.IDictionary]$Dates,
     [string]$Keyword,
-    [string]$OutputPath
+    [string]$OutputPath,
+    [System.Collections.IDictionary]$Settings,
+    [System.Collections.IDictionary]$Stats
   )
+  if (-not $Settings.enabled) {
+    $Stats.SkippedDisabled = [int]$Stats.SkippedDisabled + 1
+    return $null
+  }
+  $Stats.RequestsAttempted = [int]$Stats.RequestsAttempted + 1
   $args = @("search-hotel", "--dest-name", [string]$Config.city, "--check-in-date", [string]$Dates.CheckIn, "--check-out-date", [string]$Dates.CheckOut, "--key-words", $Keyword, "--sort", "distance_asc")
   if ($DryRun) {
     $dry = '{"data":{"itemList":[{"name":"' + ($Keyword -replace '"','') + '","price":"¥399","detailUrl":"https://a.feizhu.com/dry","star":"舒适型"}]},"message":"success","status":0}'
     [System.IO.File]::WriteAllText($OutputPath, $dry, [System.Text.Encoding]::UTF8)
+    $Stats.DryRunResponses = [int]$Stats.DryRunResponses + 1
+    $Stats.Success = [int]$Stats.Success + 1
     return $dry | ConvertFrom-Json
   }
+  Wait-FlyAIThrottle -Settings $Settings
   $previousErrorActionPreference = $ErrorActionPreference
-  $ErrorActionPreference = "Continue"
   try {
-    $output = & flyai @args 2>&1 | Out-String
-    $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = "Continue"
+    $attempts = [Math]::Max(1, [int]$Settings.maxRetries + 1)
+    for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+      $Stats.ExternalCallsUsed = [int]$Stats.ExternalCallsUsed + 1
+      $output = & flyai @args 2>&1 | Out-String
+      $exitCode = $LASTEXITCODE
+      [System.IO.File]::WriteAllText($OutputPath, $output, [System.Text.Encoding]::UTF8)
+      if ($exitCode -eq 0 -or $output -match '"status"\s*:\s*0') {
+        $result = ConvertFrom-FlyAIOutput -Output $output
+        $status = Get-FlyAIResultStatus -Result $result
+        if ($status -eq "ok") { $Stats.Success = [int]$Stats.Success + 1 }
+        elseif ($status -eq "empty") { $Stats.EmptyResults = [int]$Stats.EmptyResults + 1 }
+        else { $Stats.Failed = [int]$Stats.Failed + 1 }
+        return $result
+      }
+      if ($attempt -lt $attempts) {
+        Wait-FlyAIThrottle -Settings $Settings
+      }
+    }
   } finally {
     $ErrorActionPreference = $previousErrorActionPreference
   }
-  if ($exitCode -ne 0 -and $output -notmatch '"status"\s*:\s*0') {
-    [System.IO.File]::WriteAllText($OutputPath, $output, [System.Text.Encoding]::UTF8)
-    return $null
-  }
-  [System.IO.File]::WriteAllText($OutputPath, $output, [System.Text.Encoding]::UTF8)
-  return ConvertFrom-FlyAIOutput -Output $output
+  $Stats.Failed = [int]$Stats.Failed + 1
+  return $null
 }
 
 function Merge-FlyAIPrice {
-  param([System.Collections.IDictionary]$Candidate, [object]$FlyResult)
-  if ($null -eq $FlyResult -or -not $FlyResult.data.itemList) { return }
+  param([System.Collections.IDictionary]$Candidate, [object]$FlyResult, [System.Collections.IDictionary]$Stats)
+  $status = Get-FlyAIResultStatus -Result $FlyResult
+  $Candidate.fliggy_status = $status
+  $Candidate.fliggy_source = if ($DryRun) { "dryrun" } else { "api" }
+  if ($status -ne "ok") {
+    $Candidate.fliggy_source = if ($FlyResult -eq $null) { "failed" } else { $Candidate.fliggy_source }
+    return
+  }
   $first = @($FlyResult.data.itemList)[0]
   $Candidate.fliggy_price = [string]$first.price
   $Candidate.fliggy_detail_url = [string]$first.detailUrl
+  $Candidate.fliggy_price_quality = if (Test-MaskedPrice -Price $Candidate.fliggy_price) { "masked" } else { "exact" }
+  if ($Candidate.fliggy_price_quality -eq "masked") {
+    $Stats.MaskedPrices = [int]$Stats.MaskedPrices + 1
+  }
   if (-not $Candidate.amap_level -and $first.star) { $Candidate.amap_level = [string]$first.star }
 }
 
@@ -549,6 +638,8 @@ function Convert-ToHistoryHotel {
     comp_tier = [string]$Hotel.comp_tier
     fliggy_price = [string]$Hotel.fliggy_price
     fliggy_price_num = Get-PriceNumber -Price ([string]$Hotel.fliggy_price)
+    fliggy_status = [string]$Hotel.fliggy_status
+    fliggy_price_quality = [string]$Hotel.fliggy_price_quality
     amap_rating = [string]$Hotel.amap_rating
     baidu_rating = [string]$Hotel.baidu_rating
     baidu_comment_num = [string]$Hotel.baidu_comment_num
@@ -728,6 +819,7 @@ function Write-ReportInput {
     [System.Collections.IDictionary]$Dates,
     [System.Collections.IDictionary]$HomeHotel,
     [array]$Candidates,
+    [System.Collections.IDictionary]$FlyAIStats,
     [System.Collections.IDictionary]$BaiduStats,
     [object]$HistoryComparison,
     [string]$HistorySnapshotPath,
@@ -770,6 +862,21 @@ function Write-ReportInput {
     "- QualityRadiusMeters: $($tierRules.qualityRadiusMeters)",
     "- IncludeAlternativeLodging: $($tierRules.includeAlternativeLodging)",
     "",
+    "## FlyAI Usage",
+    "",
+    "- Enabled: $($FlyAIStats.Enabled)",
+    "- RequestDelayMs: $($FlyAIStats.RequestDelayMs)",
+    "- MaxRetries: $($FlyAIStats.MaxRetries)",
+    "- RequestsAttempted: $($FlyAIStats.RequestsAttempted)",
+    "- ExternalCallsUsed: $($FlyAIStats.ExternalCallsUsed)",
+    "- Success: $($FlyAIStats.Success)",
+    "- EmptyResults: $($FlyAIStats.EmptyResults)",
+    "- Failed: $($FlyAIStats.Failed)",
+    "- MaskedPrices: $($FlyAIStats.MaskedPrices)",
+    "- SkippedDisabled: $($FlyAIStats.SkippedDisabled)",
+    "- DryRunResponses: $($FlyAIStats.DryRunResponses)",
+    "- DryRunNote: DryRun does not call FlyAI.",
+    "",
     "## Baidu Usage",
     "",
     "- Enabled: $($BaiduStats.Enabled)",
@@ -803,11 +910,11 @@ function Write-ReportInput {
     "",
     "## Candidates",
     "",
-    "| 分层 | 酒店名 | 距离m | 飞猪价 | 高德评分 | 百度评分 | 评论数 | 百度来源 | 类型 | 理由 |",
-    "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |"
+    "| 分层 | 酒店名 | 距离m | 飞猪价 | PriceStatus | PriceQuality | 高德评分 | 百度评分 | 评论数 | 百度来源 | 类型 | 理由 |",
+    "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |"
   )
   foreach ($candidate in $Candidates) {
-    $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.baidu_source) | $($candidate.hotel_type) | $($candidate.reason) |"
+    $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.fliggy_status) | $($candidate.fliggy_price_quality) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.baidu_source) | $($candidate.hotel_type) | $($candidate.reason) |"
   }
   $lines += ""
   $lines += "## Yesterday Comparison"
@@ -847,8 +954,10 @@ if (-not $DryRun) {
 
 $homePoi = Get-AmapHome -Config $config -ApiKey $amapKey -OutputDir $outputDir
 $homeCandidate = Convert-AmapCandidate -Poi $homePoi
-$homeFly = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword ([string]$config.homeHotelName) -OutputPath (Join-Path $outputDir "flyai-home.txt")
-Merge-FlyAIPrice -Candidate $homeCandidate -FlyResult $homeFly
+$flyaiSettings = Get-FlyAISettings -Config $config
+$flyaiStats = New-FlyAIStats -Settings $flyaiSettings
+$homeFly = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword ([string]$config.homeHotelName) -OutputPath (Join-Path $outputDir "flyai-home.txt") -Settings $flyaiSettings -Stats $flyaiStats
+Merge-FlyAIPrice -Candidate $homeCandidate -FlyResult $homeFly -Stats $flyaiStats
 
 $excludeKeywords = @($config.discovery.excludeNameKeywords)
 $nearbyPois = Get-AmapNearby -Config $config -ApiKey $amapKey -HomePoi $homePoi -OutputDir $outputDir
@@ -869,8 +978,8 @@ foreach ($poi in $nearbyPois) {
 foreach ($candidate in $candidates) {
   $safeName = ($candidate.hotel_name -replace "[^a-zA-Z0-9_-]", "_").Trim("_")
   if (-not $safeName) { $safeName = "candidate" }
-  $flyResult = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword $candidate.hotel_name -OutputPath (Join-Path $outputDir "flyai-$safeName.txt")
-  Merge-FlyAIPrice -Candidate $candidate -FlyResult $flyResult
+  $flyResult = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword $candidate.hotel_name -OutputPath (Join-Path $outputDir "flyai-$safeName.txt") -Settings $flyaiSettings -Stats $flyaiStats
+  Merge-FlyAIPrice -Candidate $candidate -FlyResult $flyResult -Stats $flyaiStats
 }
 
 $baiduSettings = Get-BaiduSettings -Config $config
@@ -898,7 +1007,7 @@ if ([string]::IsNullOrWhiteSpace($historySnapshotPath)) {
 [System.IO.File]::WriteAllText((Join-Path $outputDir "history-snapshot.json"), ($historySnapshot | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
 [System.IO.File]::WriteAllText((Join-Path $outputDir "history-comparison.json"), ($historyComparison | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
 
-$reportInput = Write-ReportInput -Config $config -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates -BaiduStats $baiduStats -HistoryComparison $historyComparison -HistorySnapshotPath $historySnapshotPath -OutputDir $outputDir
+$reportInput = Write-ReportInput -Config $config -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates -FlyAIStats $flyaiStats -BaiduStats $baiduStats -HistoryComparison $historyComparison -HistorySnapshotPath $historySnapshotPath -OutputDir $outputDir
 
 Write-Host "API combo MVP input generated."
 Write-Host "Output directory: $outputDir"

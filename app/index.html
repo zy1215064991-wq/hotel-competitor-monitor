@@ -71,6 +71,14 @@
           <label class="field"><span>成人数</span><input id="adults" type="number" min="1" value="1"></label>
           <label class="field"><span>儿童数</span><input id="children" type="number" min="0" value="0"></label>
           <label class="field"><span>竞对数量</span><input id="competitorCount" type="number" min="1" max="20" value="5"></label>
+          <label class="field"><span>FlyAI 价格源</span>
+            <select id="flyaiEnabled">
+              <option value="true" selected>启用</option>
+              <option value="false">关闭</option>
+            </select>
+          </label>
+          <label class="field"><span>FlyAI 请求间隔ms</span><input id="flyaiRequestDelayMs" type="number" min="0" step="100" value="800"></label>
+          <label class="field"><span>FlyAI 失败重试</span><input id="flyaiMaxRetries" type="number" min="0" max="5" value="1"></label>
           <label class="field"><span>百度补充数量</span><input id="baiduEnrichTopN" type="number" min="0" max="30" value="10"></label>
           <label class="field"><span>百度接口开关</span>
             <select id="baiduEnabled">

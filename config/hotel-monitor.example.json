@@ -32,6 +32,11 @@
     "cacheTtlDays": 30,
     "dailyCallLimit": 20
   },
+  "flyai": {
+    "enabled": true,
+    "requestDelayMs": 800,
+    "maxRetries": 1
+  },
   "tierRules": {
     "coreRadiusMeters": 2000,
     "pricePressureRatio": 0.75,
