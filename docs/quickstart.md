@@ -1,5 +1,11 @@
 # 快速开始
 
+给 WorkBuddy 的一句话：
+
+```text
+请阅读 workbuddy-start-here.md，并按步骤帮我部署酒店竞对每日监控 API 组合版。
+```
+
 ## 1. 准备三个 Key
 
 本项目 API 组合版支持三个国内数据源：

@@ -159,6 +159,8 @@ assert.match(readme, /app\/flyai-guide\.html/, "README 应提供 FlyAI 本地引
 assert.match(readme, /app\/amap-guide\.html/, "README 应提供高德本地引导页");
 assert.match(readme, /app\/baidu-guide\.html/, "README 应提供百度本地引导页");
 assert.match(readme, /docs\/automation-setup\.md/, "README 应提供 Automation 设置文档");
+assert.match(readme, /给 WorkBuddy 的一句话/, "README 应提供醒目的 WorkBuddy 复制入口");
+assert.match(readme, /请阅读 workbuddy-start-here\.md，并按步骤帮我部署酒店竞对每日监控 API 组合版。/, "README 的 WorkBuddy 入口应指向起步文件");
 assert.match(readme, /scripts\\verify-local\.ps1|scripts\/verify-local\.ps1/, "README 应说明本地验收脚本");
 assert.match(readme, /scripts\\run-once\.ps1|scripts\/run-once\.ps1/, "README 应说明安全单次运行脚本");
 assert.match(readme, /install\.ps1/, "README 应说明先跑本地体检");
@@ -171,6 +173,8 @@ assert.match(quickstart, /app\/flyai-guide\.html/, "快速开始应提供 FlyAI 
 assert.match(quickstart, /app\/amap-guide\.html/, "快速开始应提供高德本地引导页");
 assert.match(quickstart, /app\/baidu-guide\.html/, "快速开始应提供百度本地引导页");
 assert.match(quickstart, /docs\/automation-setup\.md/, "快速开始应提供 Automation 设置文档");
+assert.match(quickstart, /给 WorkBuddy 的一句话/, "快速开始应提供醒目的 WorkBuddy 复制入口");
+assert.match(quickstart, /请阅读 workbuddy-start-here\.md，并按步骤帮我部署酒店竞对每日监控 API 组合版。/, "快速开始的 WorkBuddy 入口应指向起步文件");
 assert.match(quickstart, /scripts\\verify-local\.ps1|scripts\/verify-local\.ps1/, "快速开始应说明本地验收脚本");
 assert.match(quickstart, /scripts\\run-once\.ps1|scripts\/run-once\.ps1/, "快速开始应说明安全单次运行脚本");
 assert.match(quickstart, /install\.ps1/, "快速开始应说明先跑本地体检");
