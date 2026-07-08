@@ -52,7 +52,7 @@ setx FLYAI_API_KEY "替换成你的 FlyAI Key"
 setx BAIDU_MAP_AK "替换成你的百度 AK"
 ```
 
-设置后重新打开 WorkBuddy 或 PowerShell。如果今天百度额度紧张，可以先在本地向导里把 `baidu.dailyCallLimit` 设为 `0` 或关闭百度补充，此时正式运行 readiness 不会要求 `BAIDU_MAP_AK`。
+设置后重新打开 WorkBuddy 或 PowerShell。如果今天百度额度紧张，可以先在本地向导里点“百度省额度模式”，它会关闭百度真实调用，并把 `baidu.enrichTopN` 和 `baidu.dailyCallLimit` 设为 `0`。此时正式运行 readiness 不会要求 `BAIDU_MAP_AK`。
 
 ## 2. 先跑零额度本地体检
 
@@ -109,6 +109,7 @@ app/index.html
 - 最高价格和排序：用于从候选池收口最终竞对；价格缺失或脱敏时不会被直接删掉。
 - 百度口碑补充数量。
 - 百度缓存、缓存天数和每日调用上限。
+- 百度省额度模式：额度紧张时一键关闭百度真实调用，先验证高德、FlyAI、日报和推送主链路。
 - 核心竞品半径、价格压力比例、品质评分阈值、替代住宿策略。
 - 是否启用历史对比。
 

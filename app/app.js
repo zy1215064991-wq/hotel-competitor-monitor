@@ -252,6 +252,7 @@ function updatePreview() {
 
 function bindActions() {
   $("#generateFiles").addEventListener("click", generateFiles);
+  $("#baiduQuotaSafeMode").addEventListener("click", enableBaiduQuotaSafeMode);
   $("#downloadConfig").addEventListener("click", () => download("hotel-monitor.json", state.generated.config || buildConfigJson(), "application/json"));
   $("#downloadAutomation").addEventListener("click", () => download("automation-prompt.md", state.generated.automation || buildAutomationPrompt()));
   $("#downloadDaily").addEventListener("click", () => download("daily-prompt.md", state.generated.daily || buildDailyPrompt()));
@@ -263,6 +264,15 @@ function bindActions() {
       updatePreview();
     });
   });
+}
+
+function enableBaiduQuotaSafeMode() {
+  $("#baiduEnabled").value = "false";
+  $("#baiduEnrichTopN").value = "0";
+  $("#baiduDailyCallLimit").value = "0";
+  $("#baiduCacheEnabled").value = "true";
+  generateFiles();
+  toast("已启用百度省额度模式：正式运行不会调用百度");
 }
 
 function download(filename, content, type = "text/markdown;charset=utf-8") {

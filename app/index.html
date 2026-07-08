@@ -61,6 +61,10 @@
         <div class="checklist">
           <label><input type="checkbox" id="keyReady"> 已配置必需环境变量；百度关闭或每日上限为 0 时可先不配 BAIDU_MAP_AK</label>
           <label><input type="checkbox" id="clawbotReady"> 已在 WorkBuddy 中绑定微信助理 ClawBot</label>
+          <div class="inline-actions">
+            <button type="button" id="baiduQuotaSafeMode">百度省额度模式</button>
+            <span>将百度真实调用关闭，补充数量和每日调用上限设为 0；适合额度紧张时先跑高德 + FlyAI + 分析 + 推送。</span>
+          </div>
         </div>
 
         <div class="grid three form-grid">

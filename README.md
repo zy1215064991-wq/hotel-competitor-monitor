@@ -44,7 +44,7 @@ setx AMAP_API_KEY "替换成你的高德 Key"
 setx BAIDU_MAP_AK "替换成你的百度 AK"
 ```
 
-重新打开 WorkBuddy 或 PowerShell，让新环境变量生效。常规完整模式建议三把 Key 都配置好；如果今天百度额度紧张，可以先在向导里把 `baidu.dailyCallLimit` 设为 `0` 或关闭百度补充，此时正式运行 readiness 不会要求 `BAIDU_MAP_AK`。
+重新打开 WorkBuddy 或 PowerShell，让新环境变量生效。常规完整模式建议三把 Key 都配置好；如果今天百度额度紧张，可以先在向导里点“百度省额度模式”，它会关闭百度真实调用，并把 `baidu.enrichTopN` 和 `baidu.dailyCallLimit` 设为 `0`。此时正式运行 readiness 不会要求 `BAIDU_MAP_AK`。
 
 3. 用 WorkBuddy 打开项目目录，对 WorkBuddy 说：
 
@@ -80,7 +80,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -RepairConfigF
 app/index.html
 ```
 
-6. 填写本店、城市、商圈/POI、半径、入住口径、竞对数量、品牌补漏关键词、百度补充数量。
+6. 填写本店、城市、商圈/POI、半径、入住口径、竞对数量、品牌补漏关键词、百度补充数量。百度额度紧张时，直接点“百度省额度模式”，先跑高德 + FlyAI + 分析 + 推送主链路。
 7. 下载 `hotel-monitor.json`，放到：
 
 ```text
