@@ -11,6 +11,7 @@ const envExample = read(".env.example");
 const gitignore = read(".gitignore");
 const configExample = read("config/hotel-monitor.example.json");
 const runScript = read("scripts/run-api-mvp.ps1");
+const verifyScript = read("scripts/verify-local.ps1");
 const automationTemplate = read("templates/automation-prompt.template.md");
 const dailyPrompt = read("templates/daily-prompt.md");
 const readme = read("README.md");
@@ -61,6 +62,7 @@ assert.equal(config.history.directory, "data/history", "历史快照应保存在
 assert.ok(Array.isArray(config.discovery.excludeNameKeywords), "配置应包含剔除关键词");
 
 assert.ok(exists("scripts/run-api-mvp.ps1"), "应该提供三源组合运行脚本");
+assert.ok(exists("scripts/verify-local.ps1"), "应该提供零额度本地验收脚本");
 assert.match(runScript, /AMAP_API_KEY/, "组合脚本必须从环境变量读取高德 Key");
 assert.match(runScript, /BAIDU_MAP_AK/, "组合脚本必须从环境变量读取百度 AK");
 assert.match(runScript, /FLYAI_API_KEY/, "组合脚本必须从环境变量读取 FlyAI Key");
@@ -91,6 +93,10 @@ assert.match(runScript, /FlyAI Usage/, "组合脚本应输出 FlyAI 使用状态
 assert.match(runScript, /fliggy_status/, "组合脚本应输出价格状态");
 assert.match(runScript, /fliggy_price_quality/, "组合脚本应输出价格质量");
 assert.doesNotMatch(runScript, /\b(sk-[A-Za-z0-9]{10,}|[A-Za-z0-9_-]{40,})\b/, "组合脚本不能包含真实 Key");
+assert.match(verifyScript, /run-api-mvp\.ps1.*-DryRun/s, "本地验收脚本应只跑 DryRun");
+assert.match(verifyScript, /NetworkCallsToAmapFlyAIBaidu: 0/, "本地验收脚本应标记三源正式调用为 0");
+assert.match(verifyScript, /SkipNodeTests/, "本地验收脚本应支持跳过 Node 测试");
+assert.match(verifyScript, /secret scan/, "本地验收脚本应包含敏感信息扫描");
 
 assert.match(automationTemplate, /run-api-mvp\.ps1/, "自动化模板应运行组合脚本");
 assert.match(automationTemplate, /高德/, "自动化模板应说明高德角色");
@@ -121,6 +127,7 @@ assert.match(readme, /app\/flyai-guide\.html/, "README 应提供 FlyAI 本地引
 assert.match(readme, /app\/amap-guide\.html/, "README 应提供高德本地引导页");
 assert.match(readme, /app\/baidu-guide\.html/, "README 应提供百度本地引导页");
 assert.match(readme, /docs\/automation-setup\.md/, "README 应提供 Automation 设置文档");
+assert.match(readme, /scripts\\verify-local\.ps1|scripts\/verify-local\.ps1/, "README 应说明本地验收脚本");
 assert.match(readme, /install\.ps1/, "README 应说明先跑本地体检");
 assert.match(readme, /data\/setup-check-latest\.md/, "README 应说明体检报告路径");
 assert.match(readme, /不调用高德、FlyAI 或百度 API/, "README 应说明体检不消耗额度");
@@ -128,16 +135,19 @@ assert.match(quickstart, /app\/flyai-guide\.html/, "快速开始应提供 FlyAI 
 assert.match(quickstart, /app\/amap-guide\.html/, "快速开始应提供高德本地引导页");
 assert.match(quickstart, /app\/baidu-guide\.html/, "快速开始应提供百度本地引导页");
 assert.match(quickstart, /docs\/automation-setup\.md/, "快速开始应提供 Automation 设置文档");
+assert.match(quickstart, /scripts\\verify-local\.ps1|scripts\/verify-local\.ps1/, "快速开始应说明本地验收脚本");
 assert.match(quickstart, /install\.ps1/, "快速开始应说明先跑本地体检");
 assert.match(quickstart, /data\/setup-check-latest\.md/, "快速开始应说明体检报告路径");
 assert.match(quickstart, /不会调用高德、FlyAI 或百度 API/, "快速开始应说明体检不消耗额度");
 assert.match(startHere, /data\/setup-check-latest\.md/, "WorkBuddy 入口应读取体检报告");
 assert.match(startHere, /不得调用高德、FlyAI 或百度 API/, "WorkBuddy 入口应强调体检不调用 API");
 assert.match(startHere, /docs\/automation-setup\.md/, "WorkBuddy 入口应读取 Automation 设置文档");
+assert.match(startHere, /scripts\\verify-local\.ps1|scripts\/verify-local\.ps1/, "WorkBuddy 入口应说明本地验收脚本");
 assert.match(skill, /data\/setup-check-latest\.md/, "Skill 应读取体检报告");
 assert.match(skill, /RepairConfigFromExample/, "Skill 应说明旧配置修复");
 assert.match(skill, /docs\/automation-setup\.md/, "Skill 应读取 Automation 设置文档");
 assert.match(skill, /每天 07:30/, "Skill 应说明每天 07:30 自动化");
+assert.match(skill, /scripts\/verify-local\.ps1/, "Skill 应说明本地验收脚本");
 assert.match(dataSources, /高德作为主地图源/, "数据源文档应说明高德主地图源");
 assert.match(dataSources, /百度作为口碑补充源/, "数据源文档应说明百度口碑补充");
 assert.match(dataSources, /本地历史库/, "数据源文档应说明本地历史库");

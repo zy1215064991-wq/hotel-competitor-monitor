@@ -131,6 +131,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -D
 
 看到 `API combo MVP input generated.` 就说明本地配置链路通了。
 
+也可以跑完整本地验收：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1
+```
+
+它会执行零额度体检、DryRun、本地测试和敏感信息扫描，不跑正式采集。报告会写到：
+
+```text
+data/verify-local-latest.md
+```
+
 ## 6. 正式运行
 
 ```powershell

@@ -91,6 +91,18 @@ config/hotel-monitor.json
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -DryRun
 ```
 
+也可以跑完整本地验收：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1
+```
+
+它会执行零额度体检、DryRun、本地测试和敏感信息扫描，报告写到：
+
+```text
+data/verify-local-latest.md
+```
+
 9. 正式运行：
 
 ```powershell
@@ -159,6 +171,7 @@ config/hotel-monitor.example.json  配置示例
 scripts/run-api-mvp.ps1      高德 + FlyAI + 百度组合采集脚本
 scripts/run-flyai-mvp.ps1    FlyAI-only 备用脚本
 scripts/push-wecom.ps1       企业微信群机器人备用推送
+scripts/verify-local.ps1     零额度本地验收脚本
 templates/daily-prompt.md    红黄绿日报提示词
 templates/automation-prompt.template.md WorkBuddy Automation 提示词
 docs/                        配置、数据源和推送说明
@@ -166,6 +179,7 @@ data/                        本地 API 原始数据，已忽略
 data/cache/baidu/            本地百度口碑缓存，已忽略
 data/history/                本地每日历史快照，已忽略
 data/setup-check-latest.md   本地零额度体检报告，已忽略
+data/verify-local-latest.md  本地验收报告，已忽略
 reports/                     本地日报，已忽略
 ```
 
