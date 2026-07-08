@@ -93,6 +93,14 @@ config/hotel-monitor.json
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -DryRun
 ```
 
+更推荐新手使用安全单次运行入口：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1
+```
+
+它默认只跑 DryRun，并在正式采集前检查 readiness。只有明确加 `-Formal` 才会尝试正式采集。
+
 也可以跑完整本地验收：
 
 ```powershell
@@ -176,6 +184,7 @@ scripts/run-api-mvp.ps1      高德 + FlyAI + 百度组合采集脚本
 scripts/run-flyai-mvp.ps1    FlyAI-only 备用脚本
 scripts/push-wecom.ps1       企业微信群机器人备用推送
 scripts/verify-local.ps1     零额度本地验收脚本
+scripts/run-once.ps1         安全单次运行入口，默认 DryRun
 templates/daily-prompt.md    红黄绿日报提示词
 templates/automation-prompt.template.md WorkBuddy Automation 提示词
 docs/                        配置、数据源和推送说明
@@ -184,6 +193,7 @@ data/cache/baidu/            本地百度口碑缓存，已忽略
 data/history/                本地每日历史快照，已忽略
 data/setup-check-latest.md   本地零额度体检报告，已忽略
 data/verify-local-latest.md  本地验收报告，已忽略
+data/run-once-latest.md      安全单次运行报告，已忽略
 reports/                     本地日报，已忽略
 ```
 

@@ -137,6 +137,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -D
 
 看到 `API combo MVP input generated.` 就说明本地配置链路通了。
 
+更推荐新手使用安全单次运行入口：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1
+```
+
+它默认只跑 DryRun，并会在正式采集前检查 readiness。只有明确加 `-Formal` 才会尝试正式采集。
+
 也可以跑完整本地验收：
 
 ```powershell

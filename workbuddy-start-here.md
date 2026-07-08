@@ -65,28 +65,35 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -RepairConfigF
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -DryRun
 ```
 
-13. 如果需要完整本地验收，运行：
+13. 更推荐使用安全单次运行入口：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1
+```
+
+这一步默认只跑 DryRun，并会写入 `data/run-once-latest.md`。
+14. 如果需要完整本地验收，运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1
 ```
 
 这一步只做零额度体检、DryRun、本地测试和敏感信息扫描，不跑正式采集。
-14. DryRun 成功后，再跑正式采集：
+15. DryRun 成功后，再跑正式采集：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 ```
 
-15. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
-16. 检查 `FlyAI Usage`：说明价格源是否成功、是否空结果、是否失败、是否脱敏。
-17. 检查 `Baidu Usage`：说明百度缓存命中、真实调用次数、每日上限和被限额跳过数量。
-18. 检查 `Tier Rules`：日报解释分层时必须尊重用户配置。
-19. 优先检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；没有历史时说明“首次运行，无同口径历史”。
-20. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
-21. 默认用微信助理 ClawBot 推送日报全文。
-22. 如果 ClawBot 未配置，不要伪造推送成功；贴出日报全文，并指导我在 WorkBuddy GUI 里绑定 ClawBot。
-23. 首次手动跑通后，读取 `docs/automation-setup.md`，指导我在 WorkBuddy GUI 里创建 Automation，每天 07:30 运行。
+16. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
+17. 检查 `FlyAI Usage`：说明价格源是否成功、是否空结果、是否失败、是否脱敏。
+18. 检查 `Baidu Usage`：说明百度缓存命中、真实调用次数、每日上限和被限额跳过数量。
+19. 检查 `Tier Rules`：日报解释分层时必须尊重用户配置。
+20. 优先检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；没有历史时说明“首次运行，无同口径历史”。
+21. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
+22. 默认用微信助理 ClawBot 推送日报全文。
+23. 如果 ClawBot 未配置，不要伪造推送成功；贴出日报全文，并指导我在 WorkBuddy GUI 里绑定 ClawBot。
+24. 首次手动跑通后，读取 `docs/automation-setup.md`，指导我在 WorkBuddy GUI 里创建 Automation，每天 07:30 运行。
 
 ## 停止条件
 

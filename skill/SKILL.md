@@ -17,14 +17,15 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 6. 打开 `app/index.html`，引导用户填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、百度补充数量。
 7. 生成或确认 `config/hotel-monitor.json`。
 8. 先运行 `scripts/run-api-mvp.ps1 -DryRun`。
-9. 如需完整本地验收，运行 `scripts/verify-local.ps1`。
-10. DryRun 成功后运行 `scripts/run-api-mvp.ps1`。
-11. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
-12. 检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；首次运行没有历史时只做今日横截面。
-13. 使用 WorkBuddy 内置模型生成红黄绿日报。
-14. 保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
-15. 默认通过微信助理 ClawBot 推送；如果 ClawBot 未配置，贴出日报全文并说明未推送。
-16. 首次手动跑通后，读取 `docs/automation-setup.md`，再帮助用户创建每天 07:30 的 WorkBuddy 自动化任务。
+9. 更推荐新手运行 `scripts/run-once.ps1`，它默认只跑 DryRun。
+10. 如需完整本地验收，运行 `scripts/verify-local.ps1`。
+11. DryRun 成功后运行 `scripts/run-api-mvp.ps1`，或在确认 readiness 后运行 `scripts/run-once.ps1 -Formal`。
+12. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
+13. 检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；首次运行没有历史时只做今日横截面。
+14. 使用 WorkBuddy 内置模型生成红黄绿日报。
+15. 保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
+16. 默认通过微信助理 ClawBot 推送；如果 ClawBot 未配置，贴出日报全文并说明未推送。
+17. 首次手动跑通后，读取 `docs/automation-setup.md`，再帮助用户创建每天 07:30 的 WorkBuddy 自动化任务。
 
 ## 约束
 
@@ -37,6 +38,7 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 - 遇到 API 鉴权、额度、并发或 CLI 错误时停止并说明，不编造数据。
 - `install.ps1` 和 DryRun 不应消耗高德、FlyAI 或百度正式调用额度。
 - `scripts/verify-local.ps1` 只做本地验收，不跑正式采集。
+- `scripts/run-once.ps1` 默认只跑 DryRun；只有显式 `-Formal` 才允许正式采集。
 
 ## 常用提示词
 
