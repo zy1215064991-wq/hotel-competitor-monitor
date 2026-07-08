@@ -124,8 +124,10 @@ Select-String -Path .\data\api-combo\api-combo-latest-report-input.md -Pattern "
 保存新的 `config/hotel-monitor.json` 后重新运行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Formal
 ```
+
+如果被 readiness 拦住，先读 `data/run-once-latest.md` 和 `data/setup-check-latest.md`，按 `BlockingIssues` 处理。
 
 ## 日报说没有昨日同口径数据
 

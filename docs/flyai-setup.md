@@ -1,10 +1,10 @@
 # 数据源 Key 与 FlyAI CLI 设置
 
-这个文件保留 `flyai-setup.md` 文件名，方便旧链接继续可用。当前 MVP 实际需要三类国内数据源：
+这个文件保留 `flyai-setup.md` 文件名，方便旧链接继续可用。当前 MVP 完整模式使用三类国内数据源：
 
 - `AMAP_API_KEY`：高德地图，本店定位和周边酒店候选池。
 - `FLYAI_API_KEY`：FlyAI/飞猪，酒店价格。
-- `BAIDU_MAP_AK`：百度地图，评论数和细分评分补充。
+- `BAIDU_MAP_AK`：百度地图，评论数和细分评分补充；如果百度关闭、`baidu.enrichTopN` 为 0 或 `baidu.dailyCallLimit` 为 0，可以先不配置。
 
 高德和百度也有独立引导：
 
@@ -45,14 +45,14 @@ setx FLYAI_API_KEY "替换成你的 FlyAI Key"
 setx BAIDU_MAP_AK "替换成你的百度 AK"
 ```
 
-设置后重新打开 WorkBuddy 或 PowerShell。
+设置后重新打开 WorkBuddy 或 PowerShell。百度额度紧张时，可以先在 `config/hotel-monitor.json` 里把 `baidu.dailyCallLimit` 设为 `0`，这时正式运行 readiness 不会要求 `BAIDU_MAP_AK`。
 
 检查是否已配置：
 
 ```powershell
 if ($env:AMAP_API_KEY) { "AMAP_API_KEY 已配置" } else { "缺少 AMAP_API_KEY" }
 if ($env:FLYAI_API_KEY) { "FLYAI_API_KEY 已配置" } else { "缺少 FLYAI_API_KEY" }
-if ($env:BAIDU_MAP_AK) { "BAIDU_MAP_AK 已配置" } else { "缺少 BAIDU_MAP_AK" }
+if ($env:BAIDU_MAP_AK) { "BAIDU_MAP_AK 已配置" } else { "BAIDU_MAP_AK 未配置；只有启用百度真实调用且 dailyCallLimit 不为 0 时才必需" }
 ```
 
 不要用 `echo $env:...` 打印 Key 明文。
@@ -87,11 +87,13 @@ npm i -g @fly-ai/flyai-cli
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -DryRun
 ```
 
-再正式运行：
+再通过安全入口正式运行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Formal
 ```
+
+不要直接用 `scripts/run-api-mvp.ps1` 做正式采集；`run-once.ps1 -Formal` 会先检查 `ReadyForFormalRun`，不满足时写入 `data/run-once-latest.md` 并停止。
 
 输出会保存在：
 

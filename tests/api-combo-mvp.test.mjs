@@ -22,6 +22,7 @@ const flyaiSetup = read("docs/flyai-setup.md");
 const amapSetup = read("docs/amap-setup.md");
 const baiduSetup = read("docs/baidu-setup.md");
 const automationSetup = read("docs/automation-setup.md");
+const troubleshooting = read("docs/troubleshooting.md");
 const installer = read("install.ps1");
 const startHere = read("workbuddy-start-here.md");
 const skill = read("skill/SKILL.md");
@@ -114,6 +115,7 @@ assert.doesNotMatch(runOnceScript, /\b(sk-[A-Za-z0-9]{10,}|[A-Za-z0-9_-]{40,})\b
 assert.match(automationTemplate, /run-once\.ps1/, "自动化模板应运行安全单次入口");
 assert.match(automationTemplate, /-Formal/, "自动化模板应通过 -Formal 做正式采集");
 assert.match(automationTemplate, /ReadyForFormalRun|readiness|BlockingIssues/, "自动化模板应说明 readiness 阻塞处理");
+assert.match(automationTemplate, /是否必需.*readiness/s, "自动化模板应说明 Key 必需性由 readiness 判断");
 assert.match(automationTemplate, /高德/, "自动化模板应说明高德角色");
 assert.match(automationTemplate, /百度/, "自动化模板应说明百度角色");
 assert.match(automationTemplate, /FlyAI\/飞猪/, "自动化模板应说明 FlyAI 角色");
@@ -173,6 +175,8 @@ assert.match(skill, /RepairConfigFromExample/, "Skill 应说明旧配置修复")
 assert.match(skill, /docs\/automation-setup\.md/, "Skill 应读取 Automation 设置文档");
 assert.match(skill, /每天 07:30/, "Skill 应说明每天 07:30 自动化");
 assert.match(skill, /scripts\/verify-local\.ps1/, "Skill 应说明本地验收脚本");
+assert.match(skill, /dailyCallLimit/, "Skill 应说明百度 AK 是否必需取决于配置");
+assert.match(skill, /必需 Key/, "Skill 单次运行提示应区分必需 Key");
 assert.match(dataSources, /高德作为主地图源/, "数据源文档应说明高德主地图源");
 assert.match(dataSources, /百度作为口碑补充源/, "数据源文档应说明百度口碑补充");
 assert.match(dataSources, /本地历史库/, "数据源文档应说明本地历史库");
@@ -187,6 +191,9 @@ assert.match(flyaiSetup, /create-project-and-key/, "设置文档应提供高德 
 assert.match(flyaiSetup, /obtainAK/, "设置文档应提供百度 AK 官方入口");
 assert.match(flyaiSetup, /docs\/amap-setup\.md/, "FlyAI 设置文档应链接高德独立引导");
 assert.match(flyaiSetup, /docs\/baidu-setup\.md/, "FlyAI 设置文档应链接百度独立引导");
+assert.match(flyaiSetup, /run-once\.ps1 -Formal/, "FlyAI 设置文档正式运行应走安全入口");
+assert.match(flyaiSetup, /ReadyForFormalRun/, "FlyAI 设置文档应说明正式运行 readiness");
+assert.match(flyaiSetup, /dailyCallLimit.*0/s, "FlyAI 设置文档应说明百度限额 0 时可选");
 assert.match(amapSetup, /AMAP_API_KEY/, "高德引导应说明环境变量");
 assert.match(amapSetup, /Web 服务/, "高德引导应说明 Web 服务 Key");
 assert.match(amapSetup, /create-project-and-key/, "高德引导应提供官方入口");
@@ -256,6 +263,8 @@ assert.match(installer, /does not call Amap, FlyAI or Baidu APIs/, "安装脚本
 assert.match(installer, /RepairConfigFromExample/, "安装脚本应支持修复旧配置结构");
 assert.match(installer, /Add-MissingConfigProperties/, "安装脚本应通过补字段方式修复配置");
 assert.match(installer, /\.bak-\$timestamp/, "安装脚本修复配置前应备份旧文件");
+assert.match(troubleshooting, /run-once\.ps1 -Formal/, "排障文档重新运行正式采集应走安全入口");
+assert.match(troubleshooting, /BlockingIssues/, "排障文档应提示查看阻塞项");
 
 assert.match(flyaiGuide, /FLYAI_API_KEY/, "FlyAI 本地引导页应说明环境变量");
 assert.match(flyaiGuide, /flyai.open.fliggy.com/, "FlyAI 本地引导页应提供官方入口");

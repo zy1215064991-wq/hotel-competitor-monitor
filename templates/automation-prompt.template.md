@@ -15,7 +15,7 @@
 ## 硬约束
 
 - 全链路只使用国内可访问服务：高德地图、FlyAI/飞猪、百度地图、WorkBuddy 内置模型、微信助理 ClawBot，可选企业微信。
-- Key 只允许从环境变量读取：AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK。
+- Key 只允许从环境变量读取：AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK；是否必需由 `config/hotel-monitor.json` 和 `run-once.ps1` readiness 判断。
 - 不要把任何 Key 写进项目文件、提示词、聊天记录、报告或 GitHub。
 - 不要浏览 OTA 网页，不要要求用户登录 OTA 网站。
 - 不要编造价格、距离、档位、评分、评论数或竞品分层理由。

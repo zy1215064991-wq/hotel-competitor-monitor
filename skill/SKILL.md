@@ -10,8 +10,8 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 ## 工作流程
 
 1. 确认用户在 Windows 电脑上，并已安装 WorkBuddy。
-2. 检查 `AMAP_API_KEY`、`FLYAI_API_KEY`、`BAIDU_MAP_AK` 三个 Windows 环境变量是否存在。
-3. 检查 `flyai` CLI 是否可用。
+2. 检查 `AMAP_API_KEY`、`FLYAI_API_KEY` 是否存在；只有启用百度真实调用且 `baidu.dailyCallLimit` 不为 0 时，才把 `BAIDU_MAP_AK` 当作正式运行必需项。
+3. 检查 `flyai` CLI 是否可用；如果 `flyai.enabled=false`，它不是正式运行阻塞项。
 4. 运行 `install.ps1` 做零额度本地体检，读取 `data/setup-check-latest.md`。
 5. 如果 `config shape` 是 `warning`，询问用户是否允许运行 `install.ps1 -RepairConfigFromExample` 补齐旧配置字段。
 6. 打开 `app/index.html`，引导用户填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、百度补充数量。
@@ -57,5 +57,5 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 单次运行：
 
 ```text
-请读取 templates/automation-prompt.template.md，按 API 组合流程立即跑一次酒店竞对每日监控。运行 scripts/run-once.ps1 -Formal，读取 data/api-combo/api-combo-latest-report-input.md，再按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。缺少 Key、CLI、ClawBot 或 API 返回异常时停止并说明，不要伪造结果。
+请读取 templates/automation-prompt.template.md，按 API 组合流程立即跑一次酒店竞对每日监控。运行 scripts/run-once.ps1 -Formal，读取 data/api-combo/api-combo-latest-report-input.md，再按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。缺少必需 Key、CLI、ClawBot 或 API 返回异常时停止并说明，不要伪造结果。
 ```
