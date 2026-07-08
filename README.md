@@ -52,26 +52,38 @@ setx BAIDU_MAP_AK "替换成你的百度 AK"
 请阅读 workbuddy-start-here.md，并按步骤帮我部署酒店竞对每日监控 API 组合版。
 ```
 
-4. 打开本地向导：
+4. 先跑零额度本地体检：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+这一步只检查本地文件、环境变量、配置文件和 FlyAI CLI 是否存在，不调用高德、FlyAI 或百度 API。体检报告会写到：
+
+```text
+data/setup-check-latest.md
+```
+
+5. 打开本地向导：
 
 ```text
 app/index.html
 ```
 
-5. 填写本店、城市、商圈/POI、半径、入住口径、竞对数量、品牌补漏关键词、百度补充数量。
-6. 下载 `hotel-monitor.json`，放到：
+6. 填写本店、城市、商圈/POI、半径、入住口径、竞对数量、品牌补漏关键词、百度补充数量。
+7. 下载 `hotel-monitor.json`，放到：
 
 ```text
 config/hotel-monitor.json
 ```
 
-7. 先跑 DryRun：
+8. 先跑 DryRun：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -DryRun
 ```
 
-8. 正式运行：
+9. 正式运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
@@ -84,7 +96,7 @@ data/api-combo/api-combo-latest-report-input.md
 data/history/YYYY-MM-DD.json
 ```
 
-9. WorkBuddy 读取 `templates/daily-prompt.md` 和 `data/api-combo/api-combo-latest-report-input.md`，生成日报并通过 ClawBot 推送。
+10. WorkBuddy 读取 `templates/daily-prompt.md` 和 `data/api-combo/api-combo-latest-report-input.md`，生成日报并通过 ClawBot 推送。
 
 ## 配置文件
 
@@ -145,6 +157,7 @@ docs/                        配置、数据源和推送说明
 data/                        本地 API 原始数据，已忽略
 data/cache/baidu/            本地百度口碑缓存，已忽略
 data/history/                本地每日历史快照，已忽略
+data/setup-check-latest.md   本地零额度体检报告，已忽略
 reports/                     本地日报，已忽略
 ```
 

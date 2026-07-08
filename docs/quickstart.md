@@ -54,7 +54,27 @@ setx BAIDU_MAP_AK "替换成你的百度 AK"
 
 设置后重新打开 WorkBuddy 或 PowerShell。
 
-## 2. 打开本地向导
+## 2. 先跑零额度本地体检
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+这一步只检查：
+
+- 本地必需文件是否存在。
+- 三个环境变量是否已配置，但不打印明文。
+- `config/hotel-monitor.json` 是否存在、结构是否完整。
+- `flyai` CLI 是否存在。
+- 输出目录是否就绪。
+
+它不会调用高德、FlyAI 或百度 API，不消耗任何额度。报告会写到：
+
+```text
+data/setup-check-latest.md
+```
+
+## 3. 打开本地向导
 
 双击打开：
 
@@ -77,7 +97,7 @@ app/index.html
 - 核心竞品半径、价格压力比例、品质评分阈值、替代住宿策略。
 - 是否启用历史对比。
 
-## 3. 保存配置
+## 4. 保存配置
 
 从向导下载：
 
@@ -93,7 +113,7 @@ config/hotel-monitor.json
 
 这个文件包含你的本店信息和查询口径，默认不会提交 GitHub。
 
-## 4. DryRun 验证
+## 5. DryRun 验证
 
 先不调用真实 API，只验证配置和输出链路：
 
@@ -103,7 +123,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -D
 
 看到 `API combo MVP input generated.` 就说明本地配置链路通了。
 
-## 5. 正式运行
+## 6. 正式运行
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
@@ -118,7 +138,7 @@ data/history/YYYY-MM-DD.json
 
 第一次正式运行时没有上一份同口径历史，日报只会做今日横截面。第二天开始，脚本会自动读取上一份同口径快照，输出涨价、降价、持平。
 
-## 6. WorkBuddy 分析和推送
+## 7. WorkBuddy 分析和推送
 
 让 WorkBuddy 读取：
 
