@@ -115,6 +115,7 @@ function buildAutomationPrompt() {
 - 不要把任何 Key 写进项目文件、提示词、聊天记录、报告或 GitHub。
 - 不要浏览 OTA 网页，不要要求用户登录 OTA 网站。
 - 不要编造价格、距离、档位、评分、评论数或竞品分层理由。
+- 如果用户启用了百度省额度模式，或配置里百度关闭、补充数量为 0 或每日上限为 0，把百度口碑缺口解释为“用户主动省额度”，不要当作失败。
 
 ## 执行顺序
 
@@ -129,7 +130,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-once.ps1 -Fo
 4. 读取 data/run-once-latest.md，确认 FormalCollection: true 且 Status: ok。
 5. 读取 data/api-combo/api-combo-latest-report-input.md。
 6. 检查其中的 FlyAI Usage 章节：说明价格源成功、空结果、失败、脱敏价格和 DryRun 状态。
-7. 检查其中的 Baidu Usage 章节：说明百度缓存命中、真实 API 调用次数、每日上限和被限额跳过数量。
+7. 检查其中的 Baidu Usage 章节：说明百度缓存命中、真实 API 调用次数、每日上限和被限额跳过数量；如果百度关闭、补充数量为 0 或每日上限为 0，明确写“百度省额度模式，本次不调用百度”。
 8. 检查其中的 Tier Rules 章节：按用户配置解释核心竞品、价格压力、品质压力和替代住宿，不要用默认经验覆盖配置。
 9. 检查其中的 History / Yesterday Comparison 章节：有同口径历史时判断涨价、降价、持平；没有历史时只做今日横截面分析。
 10. 读取 templates/daily-prompt.md。
@@ -162,7 +163,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\push-wecom.ps1 -
 - 历史对比状态
 - 推送状态
 - run-once 状态
-- 如果高德、FlyAI 或百度任一数据不完整，明确说明缺口`;
+- 如果高德或 FlyAI 数据不完整，明确说明缺口；如果百度因省额度模式关闭，只说明状态，不要写成采集失败`;
 }
 
 function buildDailyPrompt() {

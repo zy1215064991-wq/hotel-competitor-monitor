@@ -56,7 +56,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -RepairConfigFromExample
 ```
 
-9. 如果我还没有配置必需 Key，先让我打开对应本地引导页面：`app/flyai-guide.html`、`app/amap-guide.html`、`app/baidu-guide.html`。如果百度额度紧张，可以先在向导里把百度每日调用上限设为 `0`。
+9. 如果我还没有配置必需 Key，先让我打开对应本地引导页面：`app/flyai-guide.html`、`app/amap-guide.html`、`app/baidu-guide.html`。如果百度额度紧张，可以先在向导里点“百度省额度模式”，它会关闭百度真实调用，并把百度补充数量和每日调用上限设为 `0`。
 10. 打开 `app/index.html`，让我填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、候选池上限、FlyAI 请求节奏、百度补充数量、百度缓存/每日调用上限、分层规则和历史对比设置。
 11. 让我下载或生成 `config/hotel-monitor.json`。
 12. 先跑 DryRun：
@@ -88,7 +88,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Form
 16. 如果正式运行被拦住，读取 `data/run-once-latest.md` 和 `data/setup-check-latest.md`，说明 `BlockingIssues`，不要绕过 `run-once.ps1` 直接调用底层正式采集脚本。
 17. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
 18. 检查 `FlyAI Usage`：说明价格源是否成功、是否空结果、是否失败、是否脱敏。
-19. 检查 `Baidu Usage`：说明百度缓存命中、真实调用次数、每日上限和被限额跳过数量。
+19. 检查 `Baidu Usage`：说明百度缓存命中、真实调用次数、每日上限和被限额跳过数量。如果百度关闭、补充数量为 0 或每日上限为 0，说明“百度省额度模式，本次不调用百度”，不要把它当作采集失败。
 20. 检查 `Tier Rules`：日报解释分层时必须尊重用户配置。
 21. 优先检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；没有历史时说明“首次运行，无同口径历史”。
 22. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
@@ -103,5 +103,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Form
 - 任意 Key 缺失。
 - `flyai` CLI 不存在或命令运行失败。
 - 高德、FlyAI 或百度 API 返回鉴权错误、额度错误、并发错误。
+- 百度省额度模式下缺少百度口碑不算错误；只有启用百度真实调用时百度 API 错误才需要停止。
 - WorkBuddy Automation 或 ClawBot 只能在桌面端 GUI 配置。
 - 任意一步需要境外服务或 VPN。
