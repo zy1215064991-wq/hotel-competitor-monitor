@@ -28,6 +28,13 @@ FlyAI/飞猪 -> 本店和候选酒店价格
 本店在哪里？附近有哪些可能相关的住宿？谁离我最近？谁同档或相邻档？
 ```
 
+候选发现分两层：
+
+- `discovery.maxCandidates`：高德先拉取的候选池上限，用来避免过早漏掉附近酒店。
+- `discovery.competitorCount`：最终进入日报、历史快照和推送的竞对数量。
+
+脚本会先给候选池补 FlyAI 价格，再按 `discovery.maxPrice`、`discovery.sort` 和 `discovery.competitorCount` 收口最终名单。`maxPrice` 只过滤已经拿到明确价格且高于上限的候选；价格缺失或脱敏时会保留，并在日报里说明数据不足。
+
 ## FlyAI/飞猪作为价格源
 
 FlyAI/飞猪适合查询入住日期下的价格信号：

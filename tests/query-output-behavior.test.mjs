@@ -58,6 +58,7 @@ try {
   assert.match(reportInput, /- MaxCandidates: 9/, "报告输入应写入候选池上限");
   assert.match(reportInput, /- MaxPrice: 450/, "报告输入应写入价格筛选");
   assert.match(reportInput, /- Sort: price_asc/, "报告输入应写入排序方式");
+  assert.match(reportInput, /- ReportedCandidateCount: 3/, "报告输入应写入实际输出竞对数量");
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }

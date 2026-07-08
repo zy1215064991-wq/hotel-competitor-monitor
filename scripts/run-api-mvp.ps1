@@ -239,7 +239,8 @@ function Invoke-FlyAIPrice {
     return $null
   }
   $Stats.RequestsAttempted = [int]$Stats.RequestsAttempted + 1
-  $args = @("search-hotel", "--dest-name", [string]$Config.city, "--check-in-date", [string]$Dates.CheckIn, "--check-out-date", [string]$Dates.CheckOut, "--key-words", $Keyword, "--sort", "distance_asc")
+  $flyaiSort = if ($Config.discovery.sort) { [string]$Config.discovery.sort } else { "distance_asc" }
+  $args = @("search-hotel", "--dest-name", [string]$Config.city, "--check-in-date", [string]$Dates.CheckIn, "--check-out-date", [string]$Dates.CheckOut, "--key-words", $Keyword, "--sort", $flyaiSort)
   if ($DryRun) {
     $dry = '{"data":{"itemList":[{"name":"' + ($Keyword -replace '"','') + '","price":"¥399","detailUrl":"https://a.feizhu.com/dry","star":"舒适型"}]},"message":"success","status":0}'
     [System.IO.File]::WriteAllText($OutputPath, $dry, [System.Text.Encoding]::UTF8)
@@ -818,6 +819,62 @@ function Set-CompTier {
   }
 }
 
+function Get-DiscoveryNumber {
+  param([pscustomobject]$Config, [string]$Name, [int]$Default)
+  if ($null -ne $Config.discovery -and $Config.discovery.PSObject.Properties[$Name] -and $null -ne $Config.discovery.$Name) {
+    return [int]$Config.discovery.$Name
+  }
+  return $Default
+}
+
+function Get-DiscoveryText {
+  param([pscustomobject]$Config, [string]$Name, [string]$Default)
+  if ($null -ne $Config.discovery -and $Config.discovery.PSObject.Properties[$Name] -and -not [string]::IsNullOrWhiteSpace([string]$Config.discovery.$Name)) {
+    return [string]$Config.discovery.$Name
+  }
+  return $Default
+}
+
+function Get-CandidateRatingNumber {
+  param([System.Collections.IDictionary]$Candidate)
+  $value = if ($Candidate.baidu_rating) { [string]$Candidate.baidu_rating } else { [string]$Candidate.amap_rating }
+  if ([string]::IsNullOrWhiteSpace($value)) { return 0 }
+  try {
+    return [double]$value
+  } catch {
+    return 0
+  }
+}
+
+function Test-MaxPriceAllowed {
+  param([System.Collections.IDictionary]$Candidate, [int]$MaxPrice)
+  if ($MaxPrice -le 0) { return $true }
+  $price = Get-PriceNumber -Price ([string]$Candidate.fliggy_price)
+  if ($price -le 0) { return $true }
+  return ($price -le $MaxPrice)
+}
+
+function Select-FinalCandidates {
+  param([pscustomobject]$Config, [array]$Candidates)
+  $competitorCount = Get-DiscoveryNumber -Config $Config -Name "competitorCount" -Default 5
+  if ($competitorCount -le 0) { $competitorCount = 5 }
+  $maxPrice = Get-DiscoveryNumber -Config $Config -Name "maxPrice" -Default 0
+  $sort = Get-DiscoveryText -Config $Config -Name "sort" -Default "distance_asc"
+  $eligible = @($Candidates | Where-Object { Test-MaxPriceAllowed -Candidate $_ -MaxPrice $maxPrice })
+
+  if ($sort -eq "price_asc") {
+    $ordered = @($eligible | Sort-Object @{ Expression = { $price = Get-PriceNumber -Price ([string]$_.fliggy_price); if ($price -gt 0) { $price } else { [int]::MaxValue } } }, @{ Expression = { [int]$_.distance_m } })
+  } elseif ($sort -eq "rate_desc") {
+    $ordered = @($eligible | Sort-Object @{ Expression = { Get-CandidateRatingNumber -Candidate $_ }; Descending = $true }, @{ Expression = { [int]$_.distance_m } })
+  } elseif ($sort -eq "no_rank") {
+    $ordered = @($eligible)
+  } else {
+    $ordered = @($eligible | Sort-Object @{ Expression = { [int]$_.distance_m } })
+  }
+
+  return @($ordered | Select-Object -First $competitorCount)
+}
+
 function Write-ReportInput {
   param(
     [pscustomobject]$Config,
@@ -833,6 +890,7 @@ function Write-ReportInput {
   $jsonPath = Join-Path $OutputDir "candidates.json"
   $reportPath = Join-Path $OutputDir "report-input.md"
   $latestPath = Join-Path $resolvedOutputRoot "api-combo-latest-report-input.md"
+  $candidateList = @($Candidates | Where-Object { $null -ne $_ })
   $radiusText = if ($Config.discovery.radiusMeters) { [string]$Config.discovery.radiusMeters } else { "2000" }
   $offsetDaysText = if ($null -ne $Config.query.offsetDays) { [string]$Config.query.offsetDays } else { "" }
   $nightsText = if ($null -ne $Config.query.nights) { [string]$Config.query.nights } else { "1" }
@@ -845,7 +903,8 @@ function Write-ReportInput {
   $maxPriceText = if ($Config.discovery.maxPrice) { [string]$Config.discovery.maxPrice } else { "" }
   $sortText = if ($Config.discovery.sort) { [string]$Config.discovery.sort } else { "distance_asc" }
   $tierRules = Get-TierRules -Config $Config
-  [System.IO.File]::WriteAllText($jsonPath, ($Candidates | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
+  $candidateJson = if ($candidateList.Count -eq 0) { "[]" } else { $candidateList | ConvertTo-Json -Depth 20 }
+  [System.IO.File]::WriteAllText($jsonPath, $candidateJson, [System.Text.Encoding]::UTF8)
   $lines = @(
     "# API Combo Hotel Competitor Report Input",
     "",
@@ -870,6 +929,7 @@ function Write-ReportInput {
     "- MaxCandidates: $maxCandidatesText",
     "- MaxPrice: $maxPriceText",
     "- Sort: $sortText",
+    "- ReportedCandidateCount: $($candidateList.Count)",
     "",
     "## History",
     "",
@@ -938,7 +998,7 @@ function Write-ReportInput {
     "| 分层 | 酒店名 | 距离m | 飞猪价 | PriceStatus | PriceQuality | 高德评分 | 百度评分 | 评论数 | 百度来源 | 类型 | 理由 |",
     "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |"
   )
-  foreach ($candidate in $Candidates) {
+  foreach ($candidate in $candidateList) {
     $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.fliggy_status) | $($candidate.fliggy_price_quality) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.baidu_source) | $($candidate.hotel_type) | $($candidate.reason) |"
   }
   $lines += ""
@@ -1007,6 +1067,8 @@ foreach ($candidate in $candidates) {
   $flyResult = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword $candidate.hotel_name -OutputPath (Join-Path $outputDir "flyai-$safeName.txt") -Settings $flyaiSettings -Stats $flyaiStats
   Merge-FlyAIPrice -Candidate $candidate -FlyResult $flyResult -Stats $flyaiStats
 }
+
+$candidates = Select-FinalCandidates -Config $config -Candidates $candidates
 
 $baiduStats = New-BaiduStats -Settings $baiduSettings
 $baiduTargets = $candidates | Sort-Object distance_m | Select-Object -First ([int]$baiduSettings.enrichTopN)
