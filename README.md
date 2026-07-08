@@ -129,6 +129,8 @@ npm test
 
 它只运行本地 `.test.mjs` 测试，不触发 `run-once.ps1 -Formal`，也不调用高德、FlyAI 或百度正式 API。
 
+GitHub Actions 也会在 push 和 pull request 时运行同一个 `npm test`。这个 CI 不配置任何三方 API Key，只做零额度静态/本地验收。
+
 9. 正式运行：
 
 ```powershell
