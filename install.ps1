@@ -1,6 +1,7 @@
 ﻿param(
   [string]$ConfigPath = ".\config\hotel-monitor.json",
   [switch]$CreateConfigFromExample,
+  [switch]$RepairConfigFromExample,
   [switch]$SkipFlyAICommandCheck,
   [string]$StatusReportPath = ".\data\setup-check-latest.md"
 )
@@ -113,6 +114,70 @@ function Test-ConfigShape {
   }
 }
 
+function Add-MissingConfigProperties {
+  param(
+    [pscustomobject]$Target,
+    [pscustomobject]$Defaults
+  )
+
+  $added = New-Object System.Collections.Generic.List[string]
+
+  foreach ($property in $Defaults.PSObject.Properties) {
+    $name = $property.Name
+    if (-not $Target.PSObject.Properties[$name]) {
+      $Target | Add-Member -NotePropertyName $name -NotePropertyValue $property.Value
+      $added.Add($name) | Out-Null
+      continue
+    }
+
+    $targetValue = $Target.$name
+    $defaultValue = $property.Value
+    if ($targetValue -is [pscustomobject] -and $defaultValue -is [pscustomobject]) {
+      $nested = Add-MissingConfigProperties -Target $targetValue -Defaults $defaultValue
+      foreach ($nestedName in $nested) {
+        $added.Add("$name.$nestedName") | Out-Null
+      }
+    }
+  }
+
+  return $added
+}
+
+function Repair-ConfigFromExample {
+  param(
+    [string]$Path,
+    [string]$ExamplePath
+  )
+
+  if (-not (Test-Path -LiteralPath $Path)) {
+    Add-Check -Item "config repair" -Status "skipped" -Detail "Config file does not exist." -NextAction "Use -CreateConfigFromExample or generate config from app/index.html."
+    return
+  }
+
+  try {
+    $configText = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+    $exampleText = Get-Content -LiteralPath $ExamplePath -Raw -Encoding UTF8
+    $config = $configText | ConvertFrom-Json
+    $defaults = $exampleText | ConvertFrom-Json
+  } catch {
+    Add-Check -Item "config repair" -Status "error" -Detail "Could not parse config or example JSON." -NextAction "Regenerate config/hotel-monitor.json from app/index.html."
+    return
+  }
+
+  $added = Add-MissingConfigProperties -Target $config -Defaults $defaults
+  if (@($added).Count -eq 0) {
+    Add-Check -Item "config repair" -Status "ok" -Detail "No missing config fields found." -NextAction "No action."
+    return
+  }
+
+  $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+  $backupPath = "$Path.bak-$timestamp"
+  Copy-Item -LiteralPath $Path -Destination $backupPath -Force
+  $json = $config | ConvertTo-Json -Depth 20
+  [System.IO.File]::WriteAllText($Path, $json, [System.Text.Encoding]::UTF8)
+  Add-Check -Item "config repair" -Status "repaired" -Detail ("Added missing fields: " + (($added | Sort-Object) -join ", ") + ". Backup: $backupPath") -NextAction "Review config/hotel-monitor.json before formal runs."
+}
+
 function Write-StatusReport {
   param([string]$Path)
 
@@ -179,6 +244,7 @@ if (-not (Test-Path -LiteralPath $targetConfig)) {
     Copy-Item -LiteralPath $exampleConfig -Destination $targetConfig -Force
     Write-Host "[created] $targetConfig"
     Add-Check -Item "config/hotel-monitor.json" -Status "created" -Detail "Created from config/hotel-monitor.example.json." -NextAction "Open app/index.html and customize it before formal runs."
+    Test-ConfigShape -Path $targetConfig
   } else {
     Write-Warning "Config file missing: $targetConfig"
     Write-Host "Create it from the local wizard app/index.html or from: $exampleConfig"
@@ -187,6 +253,11 @@ if (-not (Test-Path -LiteralPath $targetConfig)) {
 } else {
   Write-Host "[ok] Config file exists: $targetConfig"
   Add-Check -Item "config/hotel-monitor.json" -Status "ok" -Detail "Local private config exists." -NextAction "No action."
+  if ($RepairConfigFromExample) {
+    Repair-ConfigFromExample -Path $targetConfig -ExamplePath $exampleConfig
+  } else {
+    Add-Check -Item "config repair" -Status "skipped" -Detail "Run with -RepairConfigFromExample to merge missing fields from the example config." -NextAction "Use this only when setup-check reports missing config fields."
+  }
   Test-ConfigShape -Path $targetConfig
 }
 

@@ -74,6 +74,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 data/setup-check-latest.md
 ```
 
+如果报告里 `config shape` 是 `warning`，可以用示例配置补齐缺失字段：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -RepairConfigFromExample
+```
+
+这个命令会先备份旧配置，再补齐缺少的 `baidu`、`flyai`、`tierRules`、`history` 等字段。已有的城市、本店名称、入住口径不会被覆盖。
+
 ## 3. 打开本地向导
 
 双击打开：

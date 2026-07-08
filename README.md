@@ -64,6 +64,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 data/setup-check-latest.md
 ```
 
+如果体检报告提示 `config shape` 是 `warning`，说明你的本地 `config/hotel-monitor.json` 是旧结构或缺少新字段。可以用示例配置补齐缺失字段：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -RepairConfigFromExample
+```
+
+修复会保留已有的本店、城市、入住口径等字段，只补缺失字段，并在原文件旁边生成 `.bak-时间戳` 备份。
+
 5. 打开本地向导：
 
 ```text
