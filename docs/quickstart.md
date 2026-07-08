@@ -74,6 +74,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 data/setup-check-latest.md
 ```
 
+优先看报告顶部：
+
+- `ReadyForDryRun`：是否可以安全跑 DryRun。
+- `ReadyForFormalRun`：是否具备正式运行条件。
+- `BlockingIssues`：还差什么。
+
 如果报告里 `config shape` 是 `warning`，可以用示例配置补齐缺失字段：
 
 ```powershell
@@ -142,6 +148,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1
 ```text
 data/verify-local-latest.md
 ```
+
+报告顶部同样会给出 `ReadyForDryRun`、`ReadyForFormalRun` 和 `BlockingIssues`。
 
 ## 6. 正式运行
 

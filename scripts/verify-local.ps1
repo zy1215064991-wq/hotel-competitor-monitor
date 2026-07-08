@@ -1,6 +1,7 @@
 param(
   [switch]$SkipNodeTests,
   [switch]$SkipSecretScan,
+  [string]$ConfigPath = ".\config\hotel-monitor.json",
   [string]$ReportPath = ".\data\verify-local-latest.md"
 )
 
@@ -47,6 +48,52 @@ function Invoke-VerifyStep {
   }
 }
 
+function Get-ReportValue {
+  param(
+    [string]$Path,
+    [string]$Name,
+    [string]$Default = "unknown"
+  )
+
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return $Default
+  }
+
+  $pattern = "^- $([regex]::Escape($Name)): (.+)$"
+  foreach ($line in Get-Content -LiteralPath $Path -Encoding UTF8) {
+    $match = [regex]::Match($line, $pattern)
+    if ($match.Success) {
+      return $match.Groups[1].Value
+    }
+  }
+
+  return $Default
+}
+
+function Get-VerifyReadiness {
+  $failed = @($script:results | Where-Object { $_.Status -ne "ok" } | ForEach-Object { "$($_.Step)=$($_.Status)" })
+  $setupReport = Join-Path $repoRoot "data\setup-check-latest.md"
+  $setupDryRun = Get-ReportValue -Path $setupReport -Name "ReadyForDryRun"
+  $setupFormal = Get-ReportValue -Path $setupReport -Name "ReadyForFormalRun"
+  $setupBlocking = Get-ReportValue -Path $setupReport -Name "BlockingIssues" -Default "unknown"
+  $setupWarnings = Get-ReportValue -Path $setupReport -Name "Warnings" -Default "unknown"
+
+  $allStepsPassed = (@($failed).Count -eq 0)
+  $readyForDryRun = ($allStepsPassed -and $setupDryRun -eq "True")
+  $blockingIssues = if (@($failed).Count -gt 0) {
+    $failed -join "; "
+  } else {
+    $setupBlocking
+  }
+
+  return [ordered]@{
+    ReadyForDryRun = $readyForDryRun
+    ReadyForFormalRun = $setupFormal
+    BlockingIssues = $blockingIssues
+    Warnings = $setupWarnings
+  }
+}
+
 function Write-VerifyReport {
   param([string]$Path)
 
@@ -55,6 +102,7 @@ function Write-VerifyReport {
     New-Item -ItemType Directory -Force -Path $directory | Out-Null
   }
 
+  $readiness = Get-VerifyReadiness
   $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"
   $lines = New-Object System.Collections.Generic.List[string]
   $lines.Add("# Hotel Competitor Monitor Local Verification") | Out-Null
@@ -63,6 +111,10 @@ function Write-VerifyReport {
   $lines.Add("- ProjectDirectory: $repoRoot") | Out-Null
   $lines.Add("- ZeroQuotaCheck: true") | Out-Null
   $lines.Add("- NetworkCallsToAmapFlyAIBaidu: 0") | Out-Null
+  $lines.Add("- ReadyForDryRun: $($readiness.ReadyForDryRun)") | Out-Null
+  $lines.Add("- ReadyForFormalRun: $($readiness.ReadyForFormalRun)") | Out-Null
+  $lines.Add("- BlockingIssues: $($readiness.BlockingIssues)") | Out-Null
+  $lines.Add("- Warnings: $($readiness.Warnings)") | Out-Null
   $lines.Add("- Note: This script runs install.ps1, run-api-mvp.ps1 -DryRun, local tests and secret scanning. It does not run formal collection.") | Out-Null
   $lines.Add("") | Out-Null
   $lines.Add("| Step | Status | Detail |") | Out-Null
@@ -80,11 +132,11 @@ try {
   Push-Location $repoRoot
 
   Invoke-VerifyStep -Name "zero-quota setup check" -Action {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "install.ps1") -SkipFlyAICommandCheck -StatusReportPath ".\data\setup-check-latest.md" | Out-Host
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "install.ps1") -ConfigPath $ConfigPath -SkipFlyAICommandCheck -StatusReportPath ".\data\setup-check-latest.md" | Out-Host
   }
 
   Invoke-VerifyStep -Name "api combo dryrun" -Action {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\run-api-mvp.ps1") -DryRun | Out-Host
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\run-api-mvp.ps1") -ConfigPath $ConfigPath -DryRun | Out-Host
   }
 
   Invoke-VerifyStep -Name "node tests" -Action {

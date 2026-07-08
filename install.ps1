@@ -178,6 +178,37 @@ function Repair-ConfigFromExample {
   Add-Check -Item "config repair" -Status "repaired" -Detail ("Added missing fields: " + (($added | Sort-Object) -join ", ") + ". Backup: $backupPath") -NextAction "Review config/hotel-monitor.json before formal runs."
 }
 
+function Get-SetupReadiness {
+  $dryRunItems = @("wizard", "collector script", "daily prompt", "config/hotel-monitor.json", "config shape", "output directories")
+  $formalItems = $dryRunItems + @("AMAP_API_KEY", "FLYAI_API_KEY", "BAIDU_MAP_AK", "flyai CLI")
+  $dryRunBlockingStatuses = @("missing", "error", "warning", "failed")
+  $formalBlockingStatuses = @("missing", "error", "warning", "failed", "skipped")
+
+  $dryRunBlockers = @()
+  $formalBlockers = @()
+  $warnings = @()
+
+  foreach ($check in $script:checks) {
+    $label = "$($check.Item)=$($check.Status)"
+    if ($check.Status -in @("warning", "skipped", "repaired")) {
+      $warnings += $label
+    }
+    if ($check.Item -in $dryRunItems -and $check.Status -in $dryRunBlockingStatuses) {
+      $dryRunBlockers += $label
+    }
+    if ($check.Item -in $formalItems -and $check.Status -in $formalBlockingStatuses) {
+      $formalBlockers += $label
+    }
+  }
+
+  return [ordered]@{
+    ReadyForDryRun = (@($dryRunBlockers).Count -eq 0)
+    ReadyForFormalRun = (@($formalBlockers).Count -eq 0)
+    BlockingIssues = if (@($formalBlockers).Count -gt 0) { ($formalBlockers -join "; ") } elseif (@($dryRunBlockers).Count -gt 0) { ($dryRunBlockers -join "; ") } else { "none" }
+    Warnings = if (@($warnings).Count -gt 0) { ($warnings -join "; ") } else { "none" }
+  }
+}
+
 function Write-StatusReport {
   param([string]$Path)
 
@@ -186,6 +217,7 @@ function Write-StatusReport {
     New-Item -ItemType Directory -Force -Path $directory | Out-Null
   }
 
+  $readiness = Get-SetupReadiness
   $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"
   $lines = New-Object System.Collections.Generic.List[string]
   $lines.Add("# Hotel Competitor Monitor Setup Check") | Out-Null
@@ -194,6 +226,10 @@ function Write-StatusReport {
   $lines.Add("- ProjectDirectory: $repoRoot") | Out-Null
   $lines.Add("- ZeroQuotaCheck: true") | Out-Null
   $lines.Add("- NetworkCalls: 0") | Out-Null
+  $lines.Add("- ReadyForDryRun: $($readiness.ReadyForDryRun)") | Out-Null
+  $lines.Add("- ReadyForFormalRun: $($readiness.ReadyForFormalRun)") | Out-Null
+  $lines.Add("- BlockingIssues: $($readiness.BlockingIssues)") | Out-Null
+  $lines.Add("- Warnings: $($readiness.Warnings)") | Out-Null
   $lines.Add("- Note: This installer only checks local files, local environment variables and local CLI availability. It does not call Amap, FlyAI or Baidu APIs.") | Out-Null
   $lines.Add("") | Out-Null
   $lines.Add("| Item | Status | Detail | NextAction |") | Out-Null

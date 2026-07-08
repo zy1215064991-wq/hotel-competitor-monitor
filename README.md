@@ -64,6 +64,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 data/setup-check-latest.md
 ```
 
+优先看报告顶部的 `ReadyForDryRun`、`ReadyForFormalRun` 和 `BlockingIssues`。
+
 如果体检报告提示 `config shape` 是 `warning`，说明你的本地 `config/hotel-monitor.json` 是旧结构或缺少新字段。可以用示例配置补齐缺失字段：
 
 ```powershell
@@ -102,6 +104,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1
 ```text
 data/verify-local-latest.md
 ```
+
+同样优先看顶部的 `ReadyForDryRun`、`ReadyForFormalRun` 和 `BlockingIssues`。
 
 9. 正式运行：
 
