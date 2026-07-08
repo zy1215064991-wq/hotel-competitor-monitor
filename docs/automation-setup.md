@@ -75,6 +75,14 @@ hotel-competitor-monitor
 13. 如果 WorkBuddy 版本支持推送到小程序，也可以打开；但微信日报仍以 ClawBot 为主。
 14. 保存 Automation。
 
+Automation 里的正式采集必须通过安全入口执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Formal
+```
+
+不要在 Automation 里直接运行 `scripts/run-api-mvp.ps1` 做正式采集。`run-once.ps1 -Formal` 会先检查 `ReadyForFormalRun`，不满足条件时会停止并写入 `data/run-once-latest.md`。
+
 ## 首次试跑
 
 保存后不要直接等第二天，先手动触发一次。
@@ -82,6 +90,7 @@ hotel-competitor-monitor
 手动触发后检查：
 
 - 是否生成 `data/api-combo/api-combo-latest-report-input.md`。
+- `data/run-once-latest.md` 是否显示 `FormalCollection: true` 和 `Status: ok`。
 - 是否生成 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
 - 最终回复里是否包含日报全文。
 - 如果 ClawBot 已绑定，微信是否收到完整结果。

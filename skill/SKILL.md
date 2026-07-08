@@ -19,7 +19,7 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 8. 先运行 `scripts/run-api-mvp.ps1 -DryRun`。
 9. 更推荐新手运行 `scripts/run-once.ps1`，它默认只跑 DryRun。
 10. 如需完整本地验收，运行 `scripts/verify-local.ps1`。
-11. DryRun 成功后运行 `scripts/run-api-mvp.ps1`，或在确认 readiness 后运行 `scripts/run-once.ps1 -Formal`。
+11. DryRun 成功后运行 `scripts/run-once.ps1 -Formal`。如果 readiness 不通过，读取 `data/run-once-latest.md` 和 `data/setup-check-latest.md`，说明 `BlockingIssues`，不要绕过安全入口。
 12. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
 13. 检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；首次运行没有历史时只做今日横截面。
 14. 使用 WorkBuddy 内置模型生成红黄绿日报。
@@ -57,5 +57,5 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 单次运行：
 
 ```text
-请读取 templates/automation-prompt.template.md，按 API 组合流程立即跑一次酒店竞对每日监控。运行 scripts/run-api-mvp.ps1，读取 data/api-combo/api-combo-latest-report-input.md，再按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。缺少 Key、CLI、ClawBot 或 API 返回异常时停止并说明，不要伪造结果。
+请读取 templates/automation-prompt.template.md，按 API 组合流程立即跑一次酒店竞对每日监控。运行 scripts/run-once.ps1 -Formal，读取 data/api-combo/api-combo-latest-report-input.md，再按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。缺少 Key、CLI、ClawBot 或 API 返回异常时停止并说明，不要伪造结果。
 ```

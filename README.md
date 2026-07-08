@@ -101,6 +101,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1
 
 它默认只跑 DryRun，并在正式采集前检查 readiness。只有明确加 `-Formal` 才会尝试正式采集。
 
+每日 Automation 正式采集也使用同一个安全入口：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Formal
+```
+
 也可以跑完整本地验收：
 
 ```powershell
@@ -118,7 +124,7 @@ data/verify-local-latest.md
 9. 正式运行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Formal
 ```
 
 脚本会生成：
@@ -127,6 +133,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 data/api-combo/api-combo-latest-report-input.md
 data/history/YYYY-MM-DD.json
 ```
+
+如果正式运行被 readiness 拦住，先读：
+
+```text
+data/run-once-latest.md
+data/setup-check-latest.md
+```
+
+根据 `BlockingIssues` 补齐 Key、CLI、配置或推送设置，不要直接绕过 `run-once.ps1` 去跑底层正式采集脚本。
 
 10. WorkBuddy 读取 `templates/daily-prompt.md` 和 `data/api-combo/api-combo-latest-report-input.md`，生成日报并通过 ClawBot 推送。
 

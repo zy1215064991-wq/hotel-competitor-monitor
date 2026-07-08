@@ -145,6 +145,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1
 
 它默认只跑 DryRun，并会在正式采集前检查 readiness。只有明确加 `-Formal` 才会尝试正式采集。
 
+每日 Automation 正式采集也使用同一个安全入口：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Formal
+```
+
 也可以跑完整本地验收：
 
 ```powershell
@@ -162,7 +168,7 @@ data/verify-local-latest.md
 ## 6. 正式运行
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Formal
 ```
 
 脚本会生成：
@@ -171,6 +177,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 data/api-combo/api-combo-latest-report-input.md
 data/history/YYYY-MM-DD.json
 ```
+
+如果命令停止，先读取：
+
+```text
+data/run-once-latest.md
+data/setup-check-latest.md
+```
+
+按 `BlockingIssues` 处理缺失项。不要在正式采集时跳过 `run-once.ps1` 的 readiness 检查。
 
 第一次正式运行时没有上一份同口径历史，日报只会做今日横截面。第二天开始，脚本会自动读取上一份同口径快照，输出涨价、降价、持平。
 

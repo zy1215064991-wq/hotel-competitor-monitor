@@ -102,20 +102,22 @@ function buildAutomationPrompt() {
 
 1. 确认 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK 已配置在 Windows 环境变量。
 2. 确认 config/hotel-monitor.json 已存在。
-3. 运行：
+3. 运行安全单次入口执行正式采集；它会先检查 readiness：
 
 \`\`\`powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-api-mvp.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-once.ps1 -Formal
 \`\`\`
 
-4. 读取 data/api-combo/api-combo-latest-report-input.md。
-5. 检查 FlyAI Usage，说明价格源是否成功、是否空结果、是否脱敏、是否 DryRun。
-6. 检查 Baidu Usage，说明百度缓存命中、真实调用次数、每日上限和被限额跳过的情况。
-7. 检查 Tier Rules，按用户配置解释核心竞品、价格压力、品质压力和替代竞品。
-8. 读取 templates/daily-prompt.md。
-9. 优先使用其中的 History / Yesterday Comparison 判断调价；没有同口径历史时，只输出今日横截面。
-10. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-11. 默认通过微信助理 ClawBot 推送日报全文。
+4. 如果 run-once 停止，读取 data/run-once-latest.md 和 data/setup-check-latest.md，说明 BlockingIssues，不要继续生成日报。
+5. 读取 data/run-once-latest.md，确认 FormalCollection: true 且 Status: ok。
+6. 读取 data/api-combo/api-combo-latest-report-input.md。
+7. 检查 FlyAI Usage，说明价格源是否成功、是否空结果、是否脱敏、是否 DryRun。
+8. 检查 Baidu Usage，说明百度缓存命中、真实调用次数、每日上限和被限额跳过的情况。
+9. 检查 Tier Rules，按用户配置解释核心竞品、价格压力、品质压力和替代竞品。
+10. 读取 templates/daily-prompt.md。
+11. 优先使用其中的 History / Yesterday Comparison 判断调价；没有同口径历史时，只输出今日横截面。
+12. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
+13. 默认通过微信助理 ClawBot 推送日报全文。
 
 ## 约束
 
@@ -123,6 +125,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-api-mvp.ps1
 - 不要要求用户登录 OTA 网站。
 - 不要把 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK 写入文件、报告或回复。
 - 如果 FlyAI 返回脱敏价格，只按价格带分析。
+- 如果 run-once readiness 未通过，不要绕过 scripts/run-once.ps1 直接调用正式采集。
 - 如果 ClawBot 未配置，不要伪造推送成功，直接贴出完整日报。`;
 }
 
@@ -160,7 +163,7 @@ function buildDailyPrompt() {
 }
 
 function buildRunPrompt() {
-  return "请阅读 workbuddy-start-here.md，并按 API 组合流程跑一次酒店竞对每日监控。如缺少 Key，先引导我打开 app/flyai-guide.html、app/amap-guide.html、app/baidu-guide.html。先运行 scripts/run-api-mvp.ps1 -DryRun，再读取 data/api-combo/api-combo-latest-report-input.md，按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。";
+  return "请阅读 workbuddy-start-here.md，并按 API 组合流程跑一次酒店竞对每日监控。如缺少 Key，先引导我打开 app/flyai-guide.html、app/amap-guide.html、app/baidu-guide.html。先运行 scripts/run-once.ps1 做安全 DryRun，再读取 data/api-combo/api-combo-latest-report-input.md，按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。";
 }
 
 function generateFiles() {

@@ -36,5 +36,6 @@ assert.match(automationSetup, /最终回复|完整任务结果/, "Automation 文
 assert.match(automationSetup, /ClawBot 推送未配置/, "Automation 文档应说明未配置推送时不能伪造成功");
 
 assert.match(automationTemplate, /企业微信备用推送/, "自动化模板应该包含企业微信备用推送");
+assert.match(automationTemplate, /run-once\.ps1/, "自动化模板应该通过安全入口采集");
 assert.match(automationTemplate, /push-wecom\.ps1/, "自动化模板应该调用企业微信推送脚本");
 assert.match(app, /推送方式/, "前端向导应该包含推送方式");
