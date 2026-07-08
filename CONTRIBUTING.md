@@ -18,6 +18,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1
 
 `verify-local.ps1` 只做安装体检、DryRun、本地测试和敏感信息扫描，不调用高德、FlyAI 或百度正式 API。
 
+## 编辑器格式
+
+请让编辑器遵守 `.editorconfig`：
+
+- UTF-8 编码。
+- LF 换行。
+- 文件末尾保留一个换行。
+- JSON、YAML、JS、HTML、CSS、PowerShell 默认 2 空格缩进。
+
+仓库也通过 `.gitattributes` 统一文本文件换行为 LF，减少 Windows/macOS/Linux 协作时的无意义 diff。
+
 ## 不要提交的内容
 
 - 不要提交 `config/hotel-monitor.json`。

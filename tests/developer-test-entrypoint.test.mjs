@@ -13,6 +13,8 @@ assert.ok(exists(".github/workflows/ci.yml"), "公开仓库应提供 GitHub Acti
 assert.ok(exists("CONTRIBUTING.md"), "公开仓库应提供协作者安全贡献说明");
 assert.ok(exists(".github/pull_request_template.md"), "公开仓库应提供 PR 安全检查模板");
 assert.ok(exists("LICENSE"), "公开仓库应提供 LICENSE 文件，明确复用边界");
+assert.ok(exists(".gitattributes"), "公开仓库应提供 Git 换行归一化设置");
+assert.ok(exists(".editorconfig"), "公开仓库应提供编辑器格式约束");
 
 const packageJson = JSON.parse(read("package.json"));
 const runner = read("tests/run-all.mjs");
@@ -20,6 +22,8 @@ const workflow = read(".github/workflows/ci.yml");
 const contributing = read("CONTRIBUTING.md");
 const pullRequestTemplate = read(".github/pull_request_template.md");
 const license = read("LICENSE");
+const gitAttributes = read(".gitattributes");
+const editorConfig = read(".editorconfig");
 const readme = read("README.md");
 
 assert.equal(packageJson.private, true, "本项目不是 npm 发布包，应标记 private");
@@ -48,6 +52,12 @@ assert.match(pullRequestTemplate, /没有提交.*Key|未提交.*Key/, "PR 模板
 assert.match(pullRequestTemplate, /没有运行.*-Formal|未运行.*-Formal/, "PR 模板应要求确认未运行正式采集");
 assert.match(license, /MIT License/, "LICENSE 应使用 MIT License");
 assert.match(license, /Permission is hereby granted/, "LICENSE 应包含 MIT 授权正文");
+assert.match(gitAttributes, /\* text=auto eol=lf/, ".gitattributes 应统一文本换行为 LF");
+assert.match(editorConfig, /charset = utf-8/, ".editorconfig 应要求 UTF-8");
+assert.match(editorConfig, /end_of_line = lf/, ".editorconfig 应要求 LF 换行");
+assert.match(editorConfig, /insert_final_newline = true/, ".editorconfig 应要求文件末尾换行");
+assert.match(editorConfig, /\[\*\.ps1\]/, ".editorconfig 应覆盖 PowerShell 脚本");
+assert.match(contributing, /EditorConfig|\.editorconfig/, "贡献说明应提醒遵守编辑器格式约束");
 assert.match(readme, /npm test/, "README 应说明标准本地测试入口");
 assert.match(readme, /GitHub Actions/, "README 应说明 GitHub Actions 零额度验收");
 assert.match(readme, /CONTRIBUTING\.md/, "README 应链接协作者贡献说明");
