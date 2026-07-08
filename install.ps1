@@ -50,7 +50,9 @@ function Test-PrivateEnv {
   param(
     [string]$Name,
     [string]$Hint,
-    [string]$Guide
+    [string]$Guide,
+    [bool]$Required = $true,
+    [string]$OptionalReason = "Not required by current config."
   )
 
   $value = [Environment]::GetEnvironmentVariable($Name, "Process")
@@ -59,6 +61,11 @@ function Test-PrivateEnv {
   }
 
   if ([string]::IsNullOrWhiteSpace($value)) {
+    if (-not $Required) {
+      Write-Host "[optional] $Name is not configured. $OptionalReason"
+      Add-Check -Item $Name -Status "optional" -Detail $OptionalReason -NextAction "No action unless you enable this data source."
+      return $true
+    }
     Write-Warning "$Name is missing. Set it with: setx $Name `"$Hint`""
     Add-Check -Item $Name -Status "missing" -Detail "Environment variable is not configured." -NextAction "Open $Guide, then run: setx $Name `"$Hint`""
     return $false
@@ -67,6 +74,64 @@ function Test-PrivateEnv {
   Write-Host "[ok] $Name is configured."
   Add-Check -Item $Name -Status "ok" -Detail "Environment variable exists. Secret value was not printed." -NextAction "No action."
   return $true
+}
+
+function Read-ConfigOrNull {
+  param([string]$Path)
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return $null
+  }
+  try {
+    return (Get-Content -LiteralPath $Path -Raw -Encoding UTF8) | ConvertFrom-Json
+  } catch {
+    return $null
+  }
+}
+
+function Get-NestedConfigValue {
+  param(
+    [object]$Config,
+    [string]$Section,
+    [string]$Name,
+    [object]$Default
+  )
+
+  if ($null -eq $Config) { return $Default }
+  if (-not $Config.PSObject.Properties[$Section]) { return $Default }
+  $sectionValue = $Config.$Section
+  if ($null -eq $sectionValue) { return $Default }
+  if (-not $sectionValue.PSObject.Properties[$Name]) { return $Default }
+  if ($null -eq $sectionValue.$Name) { return $Default }
+  return $sectionValue.$Name
+}
+
+function Get-FormalRequirements {
+  param([object]$Config)
+
+  $flyaiEnabled = [bool](Get-NestedConfigValue -Config $Config -Section "flyai" -Name "enabled" -Default $true)
+  $baiduEnabled = [bool](Get-NestedConfigValue -Config $Config -Section "baidu" -Name "enabled" -Default $true)
+  $baiduEnrichTopN = [int](Get-NestedConfigValue -Config $Config -Section "baidu" -Name "enrichTopN" -Default 10)
+  $baiduDailyCallLimit = [int](Get-NestedConfigValue -Config $Config -Section "baidu" -Name "dailyCallLimit" -Default 20)
+  $baiduCanCallApi = ($baiduEnabled -and $baiduEnrichTopN -gt 0 -and $baiduDailyCallLimit -ne 0)
+
+  return [ordered]@{
+    AmapKeyRequired = $true
+    FlyAIKeyRequired = $flyaiEnabled
+    FlyAICommandRequired = $flyaiEnabled
+    BaiduAkRequired = $baiduCanCallApi
+    BaiduRequirementReason = if ($baiduCanCallApi) {
+      "baidu.enabled=true, enrichTopN=$baiduEnrichTopN, dailyCallLimit=$baiduDailyCallLimit."
+    } else {
+      "Baidu formal API calls are disabled by current config: enabled=$baiduEnabled, enrichTopN=$baiduEnrichTopN, dailyCallLimit=$baiduDailyCallLimit."
+    }
+  }
+}
+
+function Add-RequirementSummary {
+  param([System.Collections.IDictionary]$Requirements)
+
+  Add-Check -Item "BAIDU_MAP_AK requirement" -Status $(if ($Requirements.BaiduAkRequired) { "required" } else { "optional" }) -Detail $Requirements.BaiduRequirementReason -NextAction $(if ($Requirements.BaiduAkRequired) { "Configure BAIDU_MAP_AK or set baidu.dailyCallLimit to 0 / baidu.enabled to false." } else { "No Baidu AK is required for formal runs unless you enable real Baidu calls." })
+  Add-Check -Item "FLYAI_API_KEY requirement" -Status $(if ($Requirements.FlyAIKeyRequired) { "required" } else { "optional" }) -Detail $(if ($Requirements.FlyAIKeyRequired) { "flyai.enabled=true." } else { "flyai.enabled=false." }) -NextAction $(if ($Requirements.FlyAIKeyRequired) { "Configure FLYAI_API_KEY and flyai CLI before formal runs." } else { "No FlyAI key is required unless you enable FlyAI pricing." })
 }
 
 function Test-RequiredFile {
@@ -256,24 +321,6 @@ Test-RequiredFile -RelativePath "scripts\run-api-mvp.ps1" -Label "collector scri
 Test-RequiredFile -RelativePath "templates\daily-prompt.md" -Label "daily prompt" | Out-Null
 Test-RequiredFile -RelativePath "docs\push-setup.md" -Label "push setup guide" | Out-Null
 
-Write-Step "Check private API keys"
-$hasAmap = Test-PrivateEnv -Name "AMAP_API_KEY" -Hint "your_amap_key" -Guide "app\amap-guide.html"
-$hasFlyai = Test-PrivateEnv -Name "FLYAI_API_KEY" -Hint "your_flyai_key" -Guide "app\flyai-guide.html"
-$hasBaidu = Test-PrivateEnv -Name "BAIDU_MAP_AK" -Hint "your_baidu_ak" -Guide "app\baidu-guide.html"
-
-if (-not ($hasAmap -and $hasFlyai -and $hasBaidu)) {
-  Write-Host ""
-  Write-Host "Local setup guides:"
-  Write-Host "- app\flyai-guide.html"
-  Write-Host "- app\amap-guide.html"
-  Write-Host "- app\baidu-guide.html"
-  Write-Host "Official key entries:"
-  Write-Host "- FlyAI: https://flyai.open.fliggy.com/#ability"
-  Write-Host "- Amap: https://lbs.amap.com/api/webservice/create-project-and-key"
-  Write-Host "- Baidu: https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK"
-  Write-Host "After setting env vars, reopen WorkBuddy or PowerShell before running the workflow."
-}
-
 Write-Step "Check local config"
 if (-not (Test-Path -LiteralPath $targetConfig)) {
   if ($CreateConfigFromExample) {
@@ -297,8 +344,33 @@ if (-not (Test-Path -LiteralPath $targetConfig)) {
   Test-ConfigShape -Path $targetConfig
 }
 
+$configForRequirements = Read-ConfigOrNull -Path $targetConfig
+$formalRequirements = Get-FormalRequirements -Config $configForRequirements
+Add-RequirementSummary -Requirements $formalRequirements
+
+Write-Step "Check private API keys"
+$hasAmap = Test-PrivateEnv -Name "AMAP_API_KEY" -Hint "your_amap_key" -Guide "app\amap-guide.html" -Required ([bool]$formalRequirements.AmapKeyRequired)
+$hasFlyai = Test-PrivateEnv -Name "FLYAI_API_KEY" -Hint "your_flyai_key" -Guide "app\flyai-guide.html" -Required ([bool]$formalRequirements.FlyAIKeyRequired) -OptionalReason "FlyAI pricing is disabled by current config."
+$hasBaidu = Test-PrivateEnv -Name "BAIDU_MAP_AK" -Hint "your_baidu_ak" -Guide "app\baidu-guide.html" -Required ([bool]$formalRequirements.BaiduAkRequired) -OptionalReason ([string]$formalRequirements.BaiduRequirementReason)
+
+if (-not ($hasAmap -and $hasFlyai -and $hasBaidu)) {
+  Write-Host ""
+  Write-Host "Local setup guides:"
+  Write-Host "- app\flyai-guide.html"
+  Write-Host "- app\amap-guide.html"
+  Write-Host "- app\baidu-guide.html"
+  Write-Host "Official key entries:"
+  Write-Host "- FlyAI: https://flyai.open.fliggy.com/#ability"
+  Write-Host "- Amap: https://lbs.amap.com/api/webservice/create-project-and-key"
+  Write-Host "- Baidu: https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK"
+  Write-Host "After setting env vars, reopen WorkBuddy or PowerShell before running the workflow."
+}
+
 Write-Step "Check FlyAI CLI"
-if ($SkipFlyAICommandCheck) {
+if (-not ([bool]$formalRequirements.FlyAICommandRequired)) {
+  Write-Host "[optional] FlyAI CLI is not required because flyai.enabled=false."
+  Add-Check -Item "flyai CLI" -Status "optional" -Detail "flyai.enabled=false in current config." -NextAction "Install flyai CLI only if you enable FlyAI pricing."
+} elseif ($SkipFlyAICommandCheck) {
   Write-Host "[skip] FlyAI CLI check skipped."
   Add-Check -Item "flyai CLI" -Status "skipped" -Detail "Check skipped by -SkipFlyAICommandCheck." -NextAction "Run Get-Command flyai before formal runs."
 } elseif (Get-Command "flyai" -ErrorAction SilentlyContinue) {

@@ -100,7 +100,7 @@ function buildAutomationPrompt() {
 
 ## 执行步骤
 
-1. 确认 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK 已配置在 Windows 环境变量。
+1. 确认必需环境变量已配置在 Windows 环境变量中；常规模式需要 AMAP_API_KEY、FLYAI_API_KEY，只有启用百度真实调用且 dailyCallLimit 不为 0 时才需要 BAIDU_MAP_AK。
 2. 确认 config/hotel-monitor.json 已存在。
 3. 运行安全单次入口执行正式采集；它会先检查 readiness：
 

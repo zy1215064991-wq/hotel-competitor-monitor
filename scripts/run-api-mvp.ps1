@@ -329,6 +329,11 @@ function Get-BaiduSettings {
   }
 }
 
+function Test-BaiduAkRequired {
+  param([System.Collections.IDictionary]$Settings)
+  return ([bool]$Settings.enabled -and [int]$Settings.enrichTopN -gt 0 -and [int]$Settings.dailyCallLimit -ne 0)
+}
+
 function Get-BaiduCacheRoot {
   param([System.Collections.IDictionary]$Settings)
   $directory = [string]$Settings.cacheDirectory
@@ -945,16 +950,17 @@ New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 $amapKey = Get-EnvValue -Name "AMAP_API_KEY"
 $flyaiKey = Get-EnvValue -Name "FLYAI_API_KEY"
 $baiduAk = Get-EnvValue -Name "BAIDU_MAP_AK"
+$flyaiSettings = Get-FlyAISettings -Config $config
+$baiduSettings = Get-BaiduSettings -Config $config
 if (-not $DryRun) {
   if ([string]::IsNullOrWhiteSpace($amapKey)) { throw "AMAP_API_KEY is not set." }
-  if ([string]::IsNullOrWhiteSpace($flyaiKey)) { throw "FLYAI_API_KEY is not set." }
-  if ([string]::IsNullOrWhiteSpace($baiduAk)) { throw "BAIDU_MAP_AK is not set." }
-  if (-not (Get-Command "flyai" -ErrorAction SilentlyContinue)) { throw "flyai CLI was not found in PATH." }
+  if ([bool]$flyaiSettings.enabled -and [string]::IsNullOrWhiteSpace($flyaiKey)) { throw "FLYAI_API_KEY is not set." }
+  if ((Test-BaiduAkRequired -Settings $baiduSettings) -and [string]::IsNullOrWhiteSpace($baiduAk)) { throw "BAIDU_MAP_AK is not set." }
+  if ([bool]$flyaiSettings.enabled -and -not (Get-Command "flyai" -ErrorAction SilentlyContinue)) { throw "flyai CLI was not found in PATH." }
 }
 
 $homePoi = Get-AmapHome -Config $config -ApiKey $amapKey -OutputDir $outputDir
 $homeCandidate = Convert-AmapCandidate -Poi $homePoi
-$flyaiSettings = Get-FlyAISettings -Config $config
 $flyaiStats = New-FlyAIStats -Settings $flyaiSettings
 $homeFly = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword ([string]$config.homeHotelName) -OutputPath (Join-Path $outputDir "flyai-home.txt") -Settings $flyaiSettings -Stats $flyaiStats
 Merge-FlyAIPrice -Candidate $homeCandidate -FlyResult $homeFly -Stats $flyaiStats
@@ -982,7 +988,6 @@ foreach ($candidate in $candidates) {
   Merge-FlyAIPrice -Candidate $candidate -FlyResult $flyResult -Stats $flyaiStats
 }
 
-$baiduSettings = Get-BaiduSettings -Config $config
 $baiduStats = New-BaiduStats -Settings $baiduSettings
 $baiduTargets = $candidates | Sort-Object distance_m | Select-Object -First ([int]$baiduSettings.enrichTopN)
 foreach ($candidate in $baiduTargets) {

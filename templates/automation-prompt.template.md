@@ -23,7 +23,7 @@
 ## 执行顺序
 
 1. 确认 config/hotel-monitor.json 存在；如果缺失，提醒用户从 config/hotel-monitor.example.json 复制并填写。
-2. 先运行安全单次入口执行正式采集；它会自动检查 readiness，不满足正式采集条件时会停止：
+2. 先运行安全单次入口执行正式采集；它会按 `config/hotel-monitor.json` 自动检查必需 Key 和 readiness，不满足正式采集条件时会停止：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Formal

@@ -44,7 +44,7 @@ setx AMAP_API_KEY "替换成你的高德 Key"
 setx BAIDU_MAP_AK "替换成你的百度 AK"
 ```
 
-重新打开 WorkBuddy 或 PowerShell，让新环境变量生效。
+重新打开 WorkBuddy 或 PowerShell，让新环境变量生效。常规完整模式建议三把 Key 都配置好；如果今天百度额度紧张，可以先在向导里把 `baidu.dailyCallLimit` 设为 `0` 或关闭百度补充，此时正式运行 readiness 不会要求 `BAIDU_MAP_AK`。
 
 3. 用 WorkBuddy 打开项目目录，对 WorkBuddy 说：
 

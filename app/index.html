@@ -59,7 +59,7 @@
         </div>
 
         <div class="checklist">
-          <label><input type="checkbox" id="keyReady"> 已在 Windows 环境变量中配置 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK</label>
+          <label><input type="checkbox" id="keyReady"> 已配置必需环境变量；百度关闭或每日上限为 0 时可先不配 BAIDU_MAP_AK</label>
           <label><input type="checkbox" id="clawbotReady"> 已在 WorkBuddy 中绑定微信助理 ClawBot</label>
         </div>
 
@@ -101,7 +101,7 @@
               <option value="false">不用缓存</option>
             </select>
           </label>
-          <label class="field"><span>百度每日调用上限</span><input id="baiduDailyCallLimit" type="number" min="0" value="20"></label>
+          <label class="field"><span>百度每日调用上限（0=不调用）</span><input id="baiduDailyCallLimit" type="number" min="0" value="20"></label>
           <label class="field"><span>百度缓存天数</span><input id="baiduCacheTtlDays" type="number" min="0" value="30"></label>
           <label class="field"><span>百度缓存目录</span><input id="baiduCacheDirectory" value="data/cache/baidu"></label>
           <label class="field"><span>启用历史对比</span>

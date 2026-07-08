@@ -8,13 +8,18 @@ import { fileURLToPath } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "hotel-monitor-install-check-"));
 const configPath = path.join(tempDir, "hotel-monitor.json");
+const noBaiduConfigPath = path.join(tempDir, "hotel-monitor-no-baidu.json");
 const oldConfigPath = path.join(tempDir, "old-hotel-monitor.json");
 const reportPath = path.join(tempDir, "setup-check.md");
+const noBaiduReportPath = path.join(tempDir, "setup-check-no-baidu.md");
 const repairReportPath = path.join(tempDir, "setup-check-repair.md");
 const readText = (filePath) => fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
 const readJson = (filePath) => JSON.parse(readText(filePath));
 
 fs.copyFileSync(path.join(repoRoot, "config", "hotel-monitor.example.json"), configPath);
+const noBaiduConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+noBaiduConfig.baidu.dailyCallLimit = 0;
+fs.writeFileSync(noBaiduConfigPath, JSON.stringify(noBaiduConfig, null, 2), "utf8");
 fs.writeFileSync(
   oldConfigPath,
   JSON.stringify(
@@ -76,10 +81,33 @@ try {
   assert.match(report, /does not call Amap, FlyAI or Baidu APIs/, "体检报告应说明不调用三方 API");
   assert.match(report, /\| config shape \| ok \|/, "示例配置应通过结构检查");
   assert.match(report, /\| flyai CLI \| skipped \|/, "测试可跳过 FlyAI CLI 检查");
+  assert.match(report, /\| BAIDU_MAP_AK requirement \| required \|/, "默认配置应要求百度 AK");
   assert.match(report, /app\\flyai-guide\.html/, "体检报告应包含 FlyAI 引导页");
   assert.match(report, /app\\amap-guide\.html/, "体检报告应包含高德引导页");
   assert.match(report, /app\\baidu-guide\.html/, "体检报告应包含百度引导页");
   assert.doesNotMatch(report, /sk-[A-Za-z0-9]{10,}/, "体检报告不能包含 sk 形态的真实密钥");
+
+  execFileSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      path.join(repoRoot, "install.ps1"),
+      "-ConfigPath",
+      noBaiduConfigPath,
+      "-StatusReportPath",
+      noBaiduReportPath,
+      "-SkipFlyAICommandCheck"
+    ],
+    { cwd: repoRoot, stdio: "pipe", encoding: "utf8" }
+  );
+
+  const noBaiduReport = readText(noBaiduReportPath);
+  assert.match(noBaiduReport, /\| BAIDU_MAP_AK requirement \| optional \|/, "百度每日上限为 0 时百度 AK 应是可选项");
+  assert.match(noBaiduReport, /dailyCallLimit=0/, "体检报告应说明百度 AK 可选原因");
+  assert.doesNotMatch(noBaiduReport, /BlockingIssues: .*BAIDU_MAP_AK=missing/, "百度每日上限为 0 时不应把 BAIDU_MAP_AK 缺失写入阻塞项");
 
   execFileSync(
     "powershell",

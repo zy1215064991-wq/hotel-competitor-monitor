@@ -45,7 +45,7 @@ if ($env:BAIDU_MAP_AK) { "BAIDU_MAP_AK 已配置" } else { "缺少 BAIDU_MAP_AK"
 }
 ```
 
-额度紧张时，把 `dailyCallLimit` 先设为 `0` 或 `5`。设为 `0` 时，脚本会跳过百度真实调用，但高德候选、FlyAI 价格、历史对比和日报输入仍能继续跑。
+额度紧张时，把 `dailyCallLimit` 先设为 `0` 或 `5`。设为 `0` 时，脚本会跳过百度真实调用，正式运行 readiness 也不会要求 `BAIDU_MAP_AK`，但高德候选、FlyAI 价格、历史对比和日报输入仍能继续跑。
 
 ## 5. 查看本次用量
 

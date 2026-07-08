@@ -2,7 +2,7 @@
 
 ## 1. 准备三个 Key
 
-本项目 API 组合版需要三个国内数据源：
+本项目 API 组合版支持三个国内数据源：
 
 - 高德 Key：用于本店定位和周边酒店候选池。
 - FlyAI Key：用于飞猪酒店价格查询。
@@ -44,7 +44,7 @@ https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK
 app/baidu-guide.html
 ```
 
-把 Key 设置到 Windows 用户环境变量，不要写进项目文件：
+常规完整模式建议把 Key 设置到 Windows 用户环境变量，不要写进项目文件：
 
 ```powershell
 setx AMAP_API_KEY "替换成你的高德 Key"
@@ -52,7 +52,7 @@ setx FLYAI_API_KEY "替换成你的 FlyAI Key"
 setx BAIDU_MAP_AK "替换成你的百度 AK"
 ```
 
-设置后重新打开 WorkBuddy 或 PowerShell。
+设置后重新打开 WorkBuddy 或 PowerShell。如果今天百度额度紧张，可以先在本地向导里把 `baidu.dailyCallLimit` 设为 `0` 或关闭百度补充，此时正式运行 readiness 不会要求 `BAIDU_MAP_AK`。
 
 ## 2. 先跑零额度本地体检
 

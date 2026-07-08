@@ -2,7 +2,7 @@
 
 ## 缺少 API Key
 
-脚本正式运行需要：
+常规完整模式下，脚本正式运行需要：
 
 - `AMAP_API_KEY`
 - `FLYAI_API_KEY`
@@ -42,7 +42,7 @@ DryRun 只验证本地配置和输出链路，不调用真实 API。正式运行
 - FlyAI 失败：检查 `FLYAI_API_KEY` 是否有效、`flyai search-hotel` 是否可用。
 - 百度失败：检查 `BAIDU_MAP_AK` 是否有地点检索/详情权限、是否达到并发或配额限制。
 
-如果百度额度紧张，先把 `config/hotel-monitor.json` 里的 `baidu.dailyCallLimit` 调小，甚至设为 `0`。脚本会跳过百度补充，但高德候选、FlyAI 价格、历史对比仍能继续跑。
+如果百度额度紧张，先把 `config/hotel-monitor.json` 里的 `baidu.dailyCallLimit` 调小，甚至设为 `0`。设为 `0` 时，正式运行 readiness 不再要求 `BAIDU_MAP_AK`，脚本会跳过百度真实调用，但高德候选、FlyAI 价格、历史对比仍能继续跑。
 
 ```json
 "baidu": {

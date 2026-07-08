@@ -27,10 +27,10 @@
 ```powershell
 if ($env:AMAP_API_KEY) { "AMAP_API_KEY 已配置" } else { "缺少 AMAP_API_KEY" }
 if ($env:FLYAI_API_KEY) { "FLYAI_API_KEY 已配置" } else { "缺少 FLYAI_API_KEY" }
-if ($env:BAIDU_MAP_AK) { "BAIDU_MAP_AK 已配置" } else { "缺少 BAIDU_MAP_AK" }
+if ($env:BAIDU_MAP_AK) { "BAIDU_MAP_AK 已配置" } else { "BAIDU_MAP_AK 未配置；只有启用百度真实调用且 dailyCallLimit 不为 0 时才必需" }
 ```
 
-3. 如果缺少任意 Key，停下来让我配置，不要要求我把 Key 发给你或写进文件。
+3. 如果缺少 AMAP_API_KEY、FLYAI_API_KEY，或在启用百度真实调用且 `dailyCallLimit` 不为 0 时缺少 BAIDU_MAP_AK，停下来让我配置，不要要求我把 Key 发给你或写进文件。
 4. 检查 FlyAI CLI：
 
 ```powershell
@@ -56,7 +56,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -RepairConfigFromExample
 ```
 
-9. 如果我还没有配置 Key，先让我打开本地引导页面：`app/flyai-guide.html`、`app/amap-guide.html`、`app/baidu-guide.html`。
+9. 如果我还没有配置必需 Key，先让我打开对应本地引导页面：`app/flyai-guide.html`、`app/amap-guide.html`、`app/baidu-guide.html`。如果百度额度紧张，可以先在向导里把百度每日调用上限设为 `0`。
 10. 打开 `app/index.html`，让我填写本店、城市、POI、入住口径、房型、人数、半径、竞对数量、候选池上限、FlyAI 请求节奏、百度补充数量、百度缓存/每日调用上限、分层规则和历史对比设置。
 11. 让我下载或生成 `config/hotel-monitor.json`。
 12. 先跑 DryRun：

@@ -20,6 +20,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1 -D
 
 - `data/setup-check-latest.md` 里 `NetworkCalls: 0`，没有正式调用 API。
 - `config/hotel-monitor.json` 存在，`config shape` 为 `ok`。
+- 如果百度已关闭、`baidu.enrichTopN` 为 0 或 `baidu.dailyCallLimit` 为 0，`BAIDU_MAP_AK` 可以不是正式运行阻塞项。
 - `data/api-combo/api-combo-latest-report-input.md` 能正常生成。
 - ClawBot 已按 `docs/clawbot-setup.md` 绑定，或企业微信 webhook 已按 `docs/push-setup.md` 配好。
 
