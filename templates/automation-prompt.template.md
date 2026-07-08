@@ -1,73 +1,57 @@
 # 酒店竞对每日监控 Automation Prompt
 
-请用 WorkBuddy 内置模型执行本任务，不调用任何第三方模型接口，不读取或要求任何接口密钥。优先使用消耗最低的内置模型。
+请用 WorkBuddy 内置模型执行本任务，不调用第三方大模型接口，不读取或要求任何模型 API Key。酒店价格数据只通过 FlyAI/飞猪 CLI 获取。
+
+## 本地文件
+
+- 本地配置：config/hotel-monitor.json
+- FlyAI 采集脚本：scripts/run-flyai-mvp.ps1
+- 日报提示词：templates/daily-prompt.md
+- FlyAI 原始数据目录：data/flyai
+- 日报输出目录：reports
 
 ## 硬约束
 
-- 全链路只使用国内可访问服务：WorkBuddy 内置模型、携程国内站、微信助理 ClawBot 或企业微信。
-- 浏览携程必须使用已配置的真实浏览器 MCP：playwright-browser / mcp__playwright-browser。
-- playwright-browser 必须复用固定的持久化浏览器资料目录：ctrip-profile。
-- 浏览器必须使用有头模式。不要使用 headless 模式。不要添加 stealth、绕检测、绕风控或伪造登录相关参数。
-- 不要使用 fetch、WebFetch、requests、curl 或任何纯 HTTP 抓取方式访问携程页面。
-- 不要绕过验证码、滑块、短信验证、登录墙或风控。
-- 一天只跑一次；逐家酒店串行打开；每家打开后随机等待 3-7 秒；滚动和点击之间随机等待 1-3 秒；酒店之间随机等待 5-12 秒。
-
-## 默认运行口径
-
-- 入住日期模式：相对天数
-- 入住偏移天数：{{OFFSET_DAYS}}
-- 入住晚数：{{NIGHTS}}
-- 房间数：{{ROOMS}}
-- 成人数：{{ADULTS}}
-- 儿童数：{{CHILDREN}}
-- 儿童年龄：{{CHILD_AGES}}
-- 默认目标房型：{{ROOM_TYPE}}
-- 点评条数：{{REVIEW_COUNT}}
-- 默认定时：{{SCHEDULE_TIME}}
-- 推送方式：{{PUSH_MODE}}
-- 价格口径：携程国内站页面可见到手价/含税费说明
-
-## 对话框本次覆盖参数
-
-用户可以在 WorkBuddy 对话框里用自然语言临时覆盖默认口径。覆盖只对本次运行生效，不写入文件，不影响下一次默认定时任务。
-
-示例：
-
-- 按默认跑
-- 这次查 7月20 入住，住2晚，2成人，双床房
-- 这次点评抓10条，其他默认
-
-如果用户覆盖参数表达不完整但可推断，则按默认补齐未提到的参数；如果存在歧义，例如只说“下周”，先停下来问清楚。
+- 全链路只使用国内可访问服务：FlyAI/飞猪、WorkBuddy 内置模型、微信助理 ClawBot，可选企业微信。
+- FlyAI API Key 只允许从环境变量 FLYAI_API_KEY 读取，不要要求用户把 Key 写进项目文件、提示词、聊天记录、报告或 GitHub。
+- 不要浏览 OTA 网页，不要使用浏览器自动化，不要要求用户登录任何 OTA 网站。
+- 不要编造价格、距离、档位、品牌、地址或竞品分层理由。
+- 如果 FlyAI 返回脱敏价格，例如 ¥1xx，只能当作价格带信号，不要当作精确价格。
 
 ## 执行顺序
 
-1. 解析本轮 WorkBuddy 对话是否包含本次覆盖参数。
-2. 计算本次实际查询口径。
-3. 校验日期、房间数、成人数、儿童数、儿童年龄、房型和点评条数。
-4. 读取 competitors.md，解析本店和用户确认的全部竞对酒店。
-5. 执行登录态自检。
-6. 用 playwright-browser 逐家打开携程详情页。
-7. 页面链接或页面查询条件必须设置为本次入住日期、本次离店日期、房间数、成人数、儿童数、儿童年龄。
-8. 页面加载后必须检查可见条件是否与本次实际查询口径一致；不一致时先改成一致再抓价。
-9. 抓取酒店名、实际查询口径、目标房型可售状态、目标房型或相近房型价格、早餐、取消政策、房态和最新点评。
-10. 任意一家查询口径不一致时，不要输出调价/跟价建议，只输出“查询口径未达成，需要重跑”。
-11. 读取 daily-prompt.md 生成红黄绿日报。
-12. 保存 reports/YYYY-MM-DD-raw.md 和 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-13. 执行最后汇报与推送策略。
-14. 最终回复必须包含保存路径、抓取状态、本次实际查询口径、参数来源、ClawBot 推送状态；如果 ClawBot 未配置或推送失败，最终回复必须包含日报全文，方便用户手动转发。
+1. 确认 config/hotel-monitor.json 存在；如果缺失，提醒用户从 config/hotel-monitor.example.json 复制并填写。
+2. 确认环境变量 FLYAI_API_KEY 存在；如果缺失，停止并提醒用户在 Windows 环境变量里配置。
+3. 运行：
 
-## 最后汇报与推送
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1
+```
 
-- 如果推送方式是“只保存本地”：不要推送，只保存 reports 文件，并在最终回复里写“推送未配置”。
-- 如果推送方式是“微信助理 ClawBot”：保存日报后，通过微信助理 ClawBot 推送日报全文。推送正文必须使用 reports/YYYY-MM-DD-hotel-competitor-daily.md 的完整内容，并附上本地报告路径。
-- 使用 ClawBot 时，如果 WorkBuddy Automation 的通知/推送设置支持“推送最终回复”，最终回复必须把日报全文放在最前面，便于 ClawBot 原样推送。
-- 使用 ClawBot 时，如果存在可调用的 ClawBot 发送动作或连接器，优先直接调用该动作发送日报全文；发送后在最终回复写“ClawBot 推送成功”。
-- 如果桌面端没有绑定 ClawBot、Automation 没有选择 ClawBot 通知，或发送动作不可用，不要伪造推送成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
-- 如果推送方式是“企业微信群机器人”：保存日报后，检查环境变量 HOTEL_MONITOR_WECOM_WEBHOOK。
-- 企业微信群机器人已配置时，运行：
+4. 读取 data/flyai/latest-report-input.md。
+5. 读取 templates/daily-prompt.md。
+6. 使用 WorkBuddy 内置模型生成红黄绿经营日报。
+7. 保存 reports/YYYY-MM-DD-hotel-competitor-daily.md。
+8. 默认通过微信助理 ClawBot 推送日报全文。
+9. 如果 ClawBot 未绑定或 Automation 未启用 ClawBot 通知，不要伪造成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
+
+## 可选企业微信备用推送
+
+如果用户明确选择企业微信群机器人，并且环境变量 HOTEL_MONITOR_WECOM_WEBHOOK 存在，保存日报后运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -ReportPath .\reports\YYYY-MM-DD-hotel-competitor-daily.md
 ```
 
-- 企业微信群机器人未配置时，不要伪造推送成功；最终回复写“企业微信推送未配置：缺少 HOTEL_MONITOR_WECOM_WEBHOOK”。
+如果 webhook 缺失，不要伪造推送成功。
+
+## 最终回复
+
+最终回复必须包含：
+
+- 日报全文
+- FlyAI 数据输入路径
+- 日报保存路径
+- 查询口径
+- 推送状态
+- 如果 FlyAI 数据不完整，明确说明缺口

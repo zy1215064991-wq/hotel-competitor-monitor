@@ -7,7 +7,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const scriptPath = path.join(repoRoot, "scripts", "push-wecom.ps1");
 const setupDocPath = path.join(repoRoot, "docs", "push-setup.md");
 const automationTemplatePath = path.join(repoRoot, "templates", "automation-prompt.template.md");
-const appPath = path.join(repoRoot, "app", "app.js");
+const appPath = path.join(repoRoot, "app", "index.html");
 
 assert.ok(fs.existsSync(scriptPath), "应该提供企业微信推送脚本");
 assert.ok(fs.existsSync(setupDocPath), "应该提供详细推送设置文档");
@@ -29,6 +29,6 @@ assert.match(setupDoc, /ClawBot/, "文档应该说明个人微信 ClawBot 方式
 assert.match(setupDoc, /setx/, "文档应该给出 Windows 设置环境变量命令");
 assert.match(setupDoc, /测试推送/, "文档应该包含测试推送步骤");
 
-assert.match(automationTemplate, /推送策略/, "自动化模板应该包含推送策略");
+assert.match(automationTemplate, /企业微信备用推送/, "自动化模板应该包含企业微信备用推送");
 assert.match(automationTemplate, /push-wecom\.ps1/, "自动化模板应该调用企业微信推送脚本");
-assert.match(app, /推送方式/, "前端生成的自动化提示词应该包含推送方式");
+assert.match(app, /推送方式/, "前端向导应该包含推送方式");

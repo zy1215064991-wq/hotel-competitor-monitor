@@ -143,6 +143,10 @@ button.primary {
   gap: 6px;
 }
 
+.field.wide {
+  grid-column: span 2;
+}
+
 .field span {
   color: var(--muted);
   font-size: 13px;

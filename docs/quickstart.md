@@ -1,32 +1,16 @@
 # 快速开始
 
-## 1. 下载项目
+## 1. 配置 FlyAI Key
 
-下载压缩包或克隆仓库到 Windows 电脑。路径不要放在需要管理员权限的系统目录。
-
-## 2. 配置 WorkBuddy Playwright MCP
-
-推荐方式：用 WorkBuddy 打开项目目录，然后对 WorkBuddy 说：
-
-```text
-请阅读 workbuddy-start-here.md，并按步骤帮我部署。
-```
-
-手动方式：在 PowerShell 中进入项目目录，运行：
+在 Windows PowerShell 中运行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+setx FLYAI_API_KEY "替换成你的 FlyAI Key"
 ```
 
-如果只想重新写入 MCP 配置，也可以运行底层脚本：
+重新打开 WorkBuddy 或 PowerShell。
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-workbuddy-mcp.ps1
-```
-
-然后完全退出并重启 WorkBuddy。
-
-## 3. 打开本地向导
+## 2. 打开本地向导
 
 双击打开：
 
@@ -34,36 +18,49 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-workbuddy-mc
 app/index.html
 ```
 
-## 4. 登录携程
+填写城市、本店、商圈/POI、查询口径、竞对数量和品牌补漏关键词。
 
-在向导第一步复制登录验证提示词，粘贴到 WorkBuddy 普通对话中。WorkBuddy 会用 `playwright-browser` 打开携程。
+## 3. 保存配置
 
-WorkBuddy 会优先直达携程登录页。请在浏览器里自行选择登录方式，例如扫码、手机号、账号或页面提供的其他方式。不要让自动化输入账号、密码、手机号、短信验证码或处理滑块。
+从向导下载：
 
-## 5. 搜索并确认酒店
+```text
+hotel-monitor.json
+```
 
-在向导中输入城市、本店名称和竞对发现条件。推荐选择“自动发现竞对”，填写位置、商圈或地标，例如“江桥万达”。复制候选搜索提示词到 WorkBuddy。WorkBuddy 返回候选表后，粘贴回向导并确认正确酒店。
+放到：
 
-## 6. 生成文件
+```text
+config/hotel-monitor.json
+```
 
-在向导中设置默认查询口径，生成并下载：
+## 4. DryRun 验证
 
-- `competitors.md`
-- `automation-prompt.md`
-- `daily-prompt.md`
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1 -DryRun
+```
 
-把这些文件放在你的 WorkBuddy 项目目录里。
+看到 `FlyAI MVP input generated.` 就说明本地配置链路通了。
 
-## 7. 创建 Automation
+## 5. 正式运行
 
-在 WorkBuddy 的 Automation 中：
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1
+```
 
-- 名称：酒店竞对每日监控
-- 模型：低积分内置模型
-- Prompt：粘贴 `automation-prompt.md`
-- 定时：每天 07:30
-- 推送：默认选择微信助理 ClawBot；如果要发到运营群，再选择企业微信群机器人
+脚本会生成：
 
-先点 `Run once` 验证。
+```text
+data/flyai/latest-report-input.md
+```
+
+## 6. WorkBuddy 分析和推送
+
+让 WorkBuddy 读取：
+
+- `data/flyai/latest-report-input.md`
+- `templates/daily-prompt.md`
+
+生成日报后保存到 `reports/`，默认通过微信助理 ClawBot 推送。
 
 详细推送配置见 `docs/push-setup.md`。

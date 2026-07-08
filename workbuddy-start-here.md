@@ -1,60 +1,59 @@
 # WorkBuddy Start Here
 
-你是我的 WorkBuddy 配置助手。请按本文件一步步帮我部署“酒店竞对每日监控”，不要一次性假装完成。
+你是我的 WorkBuddy 配置助手。请按本文件一步步帮我部署“酒店竞对每日监控 FlyAI MVP”，不要一次性假装完成。
+
+## MVP 目标
+
+只跑通这一条链路：
+
+```text
+FlyAI/飞猪酒店搜索 -> WorkBuddy 内置模型分析 -> 微信助理 ClawBot 推送
+```
 
 ## 硬约束
 
-- 全链路只使用国内可访问服务：WorkBuddy、携程国内站、本机 Chrome 或 Edge 浏览器。
-- 使用 WorkBuddy 内置模型，不配置第三方模型接口密钥，不创建或修改 `models.json`。
-- 携程页面必须用 `playwright-browser` 真实浏览器 MCP，不要使用 fetch、WebFetch、curl、requests 或任何纯 HTTP 抓取。
-- 不绕过登录墙、验证码、滑块、短信验证或风控页面。
-- 需要用户人工登录携程、WorkBuddy GUI Trust、定时任务、微信助理 ClawBot 推送配置时，停下来让我手动操作。
+- 全链路只使用国内可访问服务：FlyAI/飞猪、WorkBuddy 内置模型、微信助理 ClawBot，可选企业微信。
+- 不使用浏览器自动化作为主流程。
+- 不要求用户登录 OTA 网站。
+- 不创建或修改 WorkBuddy 的 `models.json`。
+- FLYAI_API_KEY 只能从 Windows 环境变量读取，不要写进项目文件、聊天回复、报告或 GitHub。
+- 需要用户配置环境变量、WorkBuddy Automation、ClawBot 推送时，停下来让我手动操作。
 
 ## 你要执行的步骤
 
-1. 确认当前目录是本项目根目录，应该能看到 `install.ps1`、`app/`、`scripts/`、`docs/`、`templates/`。
-2. 运行：
+1. 确认当前目录是本项目根目录，应该能看到 `app/`、`config/`、`scripts/`、`templates/`。
+2. 检查环境变量：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+if ($env:FLYAI_API_KEY) { "FLYAI_API_KEY 已配置" } else { "缺少 FLYAI_API_KEY" }
 ```
 
-3. 把脚本输出的验证结果贴给我。
-4. 提醒我完全重启 WorkBuddy。
-5. 如果 WorkBuddy 提示 MCP 连接器需要 Trust/启用，停下来让我在 GUI 里确认。
-6. 打开 `app/index.html`，让我从第 1 步开始配置。
-7. 复制前端里的“登录验证提示词”，用 `playwright-browser` 打开携程登录页，然后停止自动操作，让我自行选择登录方式并完成人工登录。
-8. 我说“已登录”后，打开一页携程酒店详情页，确认价格是否可见。
-9. 让我填写城市、本店酒店名、竞对数量和竞对发现条件。推荐使用“自动发现竞对”，不要让我手填携程页面链接。
-10. 使用前端生成的候选搜索提示词，通过真实浏览器在携程搜索候选酒店，输出候选 Markdown 表格。
-11. 等我确认本店和用户指定数量的竞对后，生成：
-    - `competitors.md`
-    - `automation-prompt.md`
-    - `daily-prompt.md`
-12. 让我复制“单次运行验证提示词”，在 WorkBuddy 里手动跑一次。
-13. 如果首次运行抓到价格、房型、点评并生成日报，再指导我设置 Automation 每天 07:30，并优先用微信助理 ClawBot 推送最后汇报。
-
-## 安装后手动验证
-
-如果我想自己检查，请让我运行：
+3. 如果缺少 FLYAI_API_KEY，停下来让我配置，不要要求我把 Key 发给你或写进文件。
+4. 打开 `app/index.html`，让我填写本店、城市、POI、入住口径、竞对数量、品牌补漏。
+5. 让我下载或生成 `config/hotel-monitor.json`。
+6. 先跑 DryRun：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-workbuddy.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1 -DryRun
 ```
 
-通过标准：
+7. DryRun 成功后，再跑正式采集：
 
-- `.workbuddy\.mcp.json` 或 `.workbuddy\mcp.json` 是合法 JSON。
-- 文件没有 UTF-8 BOM。
-- 存在 `playwright-browser` 浏览器连接器。
-- 项目根目录下存在 `ctrip-profile` 登录态目录。
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-flyai-mvp.ps1
+```
+
+8. 读取 `data/flyai/latest-report-input.md` 和 `templates/daily-prompt.md`。
+9. 用 WorkBuddy 内置模型生成红黄绿日报，保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
+10. 默认用微信助理 ClawBot 推送日报全文。
+11. 如果 ClawBot 未配置，不要伪造推送成功；贴出日报全文，并指导我在 WorkBuddy GUI 里绑定 ClawBot。
+12. 首次手动跑通后，再指导我创建 Automation，每天 07:30 运行。
 
 ## 停止条件
 
-遇到以下情况必须停止并告诉我，不要替我绕过：
+遇到以下情况必须停止并告诉我：
 
-- 携程要求人工登录。
-- 携程出现验证码、滑块、短信验证或风控。
-- WorkBuddy 需要在 GUI 里 Trust/启用 MCP。
-- Automation 定时或微信助理 ClawBot 推送只能在桌面端 GUI 配置。
+- FLYAI_API_KEY 缺失。
+- `flyai` CLI 不存在或命令运行失败。
+- WorkBuddy Automation 或 ClawBot 只能在桌面端 GUI 配置。
 - 任意一步需要境外服务或 VPN。

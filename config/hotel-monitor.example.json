@@ -1,0 +1,20 @@
+{
+  "city": "上海",
+  "homeHotelName": "桔子水晶上海江桥万达酒店",
+  "poiName": "江桥万达",
+  "query": {
+    "offsetDays": 7,
+    "nights": 1,
+    "rooms": 1,
+    "adults": 1,
+    "children": 0,
+    "roomType": "大床房"
+  },
+  "discovery": {
+    "competitorCount": 5,
+    "brandKeywords": ["全季", "亚朵", "汉庭", "如家精选"],
+    "maxPrice": 600,
+    "sort": "distance_asc"
+  },
+  "pushMode": "clawbot"
+}

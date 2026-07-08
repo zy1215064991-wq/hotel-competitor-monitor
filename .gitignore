@@ -1,9 +1,12 @@
 ctrip-profile/
 reports/
 output/
+data/
+config/hotel-monitor.json
 *.log
 .env
 .env.*
+!.env.example
 .DS_Store
 node_modules/
 dist/
