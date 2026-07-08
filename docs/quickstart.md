@@ -2,6 +2,8 @@
 
 ## 1. 配置 FlyAI Key
 
+如果还没有 Key，请到飞猪 AI 开放平台获取：https://flyai.open.fliggy.com/#ability
+
 在 Windows PowerShell 中运行：
 
 ```powershell

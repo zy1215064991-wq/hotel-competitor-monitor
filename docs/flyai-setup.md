@@ -4,6 +4,8 @@
 
 FlyAI Key 只允许保存在 Windows 环境变量中，不要写进项目文件。
 
+如果还没有 Key，请到飞猪 AI 开放平台获取：https://flyai.open.fliggy.com/#ability
+
 ```powershell
 setx FLYAI_API_KEY "替换成你的 FlyAI Key"
 ```

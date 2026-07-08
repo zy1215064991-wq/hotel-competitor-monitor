@@ -21,6 +21,8 @@ FlyAI/飞猪酒店搜索 -> WorkBuddy 内置模型分析 -> 微信助理 ClawBot
 1. 下载或克隆本项目到 Windows 电脑。
 2. 配置 FlyAI API Key 到 Windows 环境变量：
 
+如果还没有 Key，请到飞猪 AI 开放平台获取：https://flyai.open.fliggy.com/#ability
+
 ```powershell
 setx FLYAI_API_KEY "替换成你的 FlyAI Key"
 ```

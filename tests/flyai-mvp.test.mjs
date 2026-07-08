@@ -18,6 +18,8 @@ const appHtml = read("app/index.html");
 const appJs = read("app/app.js");
 const readme = read("README.md");
 const startHere = read("workbuddy-start-here.md");
+const quickstart = read("docs/quickstart.md");
+const flyaiSetup = read("docs/flyai-setup.md");
 
 assert.match(gitignore, /^\.env$/m, ".env 必须被忽略");
 assert.match(gitignore, /^data\/$/m, "FlyAI 原始数据目录必须被忽略");
@@ -65,5 +67,8 @@ assert.doesNotMatch(appJs, /playwright-browser|CTRIP_LOGIN_URL|携程登录页/,
 
 assert.match(readme, /FlyAI\/飞猪/, "README 应该介绍 FlyAI MVP 主流程");
 assert.match(readme, /FLYAI_API_KEY/, "README 应该说明环境变量");
+assert.match(readme, /https:\/\/flyai\.open\.fliggy\.com\/#ability/, "README 应该说明 FlyAI Key 获取地址");
+assert.match(quickstart, /https:\/\/flyai\.open\.fliggy\.com\/#ability/, "快速开始应该说明 FlyAI Key 获取地址");
+assert.match(flyaiSetup, /https:\/\/flyai\.open\.fliggy\.com\/#ability/, "FlyAI 设置文档应该说明 Key 获取地址");
 assert.match(startHere, /run-flyai-mvp\.ps1/, "WorkBuddy 入口应该运行 FlyAI MVP 脚本");
 assert.doesNotMatch(startHere, /Playwright|携程登录|扫码登录/, "WorkBuddy 入口不应该要求浏览器登录");
