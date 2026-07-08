@@ -834,6 +834,16 @@ function Write-ReportInput {
   $reportPath = Join-Path $OutputDir "report-input.md"
   $latestPath = Join-Path $resolvedOutputRoot "api-combo-latest-report-input.md"
   $radiusText = if ($Config.discovery.radiusMeters) { [string]$Config.discovery.radiusMeters } else { "2000" }
+  $offsetDaysText = if ($null -ne $Config.query.offsetDays) { [string]$Config.query.offsetDays } else { "" }
+  $nightsText = if ($null -ne $Config.query.nights) { [string]$Config.query.nights } else { "1" }
+  $roomsText = if ($null -ne $Config.query.rooms) { [string]$Config.query.rooms } else { "1" }
+  $adultsText = if ($null -ne $Config.query.adults) { [string]$Config.query.adults } else { "1" }
+  $childrenText = if ($null -ne $Config.query.children) { [string]$Config.query.children } else { "0" }
+  $roomTypeText = if ($Config.query.roomType) { [string]$Config.query.roomType } else { "" }
+  $competitorCountText = if ($Config.discovery.competitorCount) { [string]$Config.discovery.competitorCount } else { "" }
+  $maxCandidatesText = if ($Config.discovery.maxCandidates) { [string]$Config.discovery.maxCandidates } else { "20" }
+  $maxPriceText = if ($Config.discovery.maxPrice) { [string]$Config.discovery.maxPrice } else { "" }
+  $sortText = if ($Config.discovery.sort) { [string]$Config.discovery.sort } else { "distance_asc" }
   $tierRules = Get-TierRules -Config $Config
   [System.IO.File]::WriteAllText($jsonPath, ($Candidates | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
   $lines = @(
@@ -849,7 +859,17 @@ function Write-ReportInput {
     "- PoiName: $($Config.poiName)",
     "- CheckIn: $($Dates.CheckIn)",
     "- CheckOut: $($Dates.CheckOut)",
+    "- OffsetDays: $offsetDaysText",
+    "- Nights: $nightsText",
+    "- Rooms: $roomsText",
+    "- Adults: $adultsText",
+    "- Children: $childrenText",
+    "- RoomType: $roomTypeText",
     "- RadiusMeters: $radiusText",
+    "- CompetitorCount: $competitorCountText",
+    "- MaxCandidates: $maxCandidatesText",
+    "- MaxPrice: $maxPriceText",
+    "- Sort: $sortText",
     "",
     "## History",
     "",
