@@ -100,6 +100,13 @@ assert.match(appHtml, /id="coreRadiusMeters"/, "向导应收集核心竞品半�
 assert.match(appHtml, /id="pricePressureRatio"/, "向导应收集价格压力比例");
 assert.match(appHtml, /id="qualityRatingThreshold"/, "向导应收集品质评分阈值");
 assert.match(appHtml, /id="includeAlternativeLodging"/, "向导应收集替代住宿策略");
+assert.match(appHtml, /key-guide/, "向导应包含 API Key 获取引导区域");
+assert.match(appHtml, /https:\/\/flyai\.open\.fliggy\.com\/#ability/, "向导应提供 FlyAI Key 获取入口");
+assert.match(appHtml, /https:\/\/lbs\.amap\.com\/api\/webservice\/create-project-and-key/, "向导应提供高德 Key 获取入口");
+assert.match(appHtml, /https:\/\/lbsyun\.baidu\.com\/index\.php\?title=FAQ%2FobtainAK/, "向导应提供百度 AK 获取入口");
+assert.match(appHtml, /setx FLYAI_API_KEY/, "向导应提供 FlyAI 环境变量命令");
+assert.match(appHtml, /setx AMAP_API_KEY/, "向导应提供高德环境变量命令");
+assert.match(appHtml, /setx BAIDU_MAP_AK/, "向导应提供百度环境变量命令");
 assert.match(appJs, /AMAP_API_KEY/, "向导运行提示应提示高德 Key");
 assert.match(appJs, /BAIDU_MAP_AK/, "向导运行提示应提示百度 AK");
 assert.match(appJs, /history/, "向导应生成历史配置");

@@ -22,6 +22,33 @@
           <p>填写本店、商圈/POI、半径和查询口径。向导只生成本地配置，不保存任何 API Key。</p>
         </div>
 
+        <div class="key-guide" aria-label="API Key 获取引导">
+          <article class="key-card">
+            <div>
+              <h3>FlyAI / 飞猪价格</h3>
+              <p>用于查询飞猪生态下的本店和竞品价格。</p>
+            </div>
+            <a href="https://flyai.open.fliggy.com/#ability" target="_blank" rel="noreferrer">获取 FlyAI Key</a>
+            <code>setx FLYAI_API_KEY "替换成你的 FlyAI Key"</code>
+          </article>
+          <article class="key-card">
+            <div>
+              <h3>高德地图候选池</h3>
+              <p>用于定位本店、查周边酒店、距离和商圈。</p>
+            </div>
+            <a href="https://lbs.amap.com/api/webservice/create-project-and-key" target="_blank" rel="noreferrer">获取高德 Key</a>
+            <code>setx AMAP_API_KEY "替换成你的高德 Key"</code>
+          </article>
+          <article class="key-card">
+            <div>
+              <h3>百度地图口碑补充</h3>
+              <p>用于补充评论数、评分、设施、卫生和服务信号。</p>
+            </div>
+            <a href="https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK" target="_blank" rel="noreferrer">获取百度 AK</a>
+            <code>setx BAIDU_MAP_AK "替换成你的百度 AK"</code>
+          </article>
+        </div>
+
         <div class="checklist">
           <label><input type="checkbox" id="keyReady"> 已在 Windows 环境变量中配置 AMAP_API_KEY、FLYAI_API_KEY、BAIDU_MAP_AK</label>
           <label><input type="checkbox" id="clawbotReady"> 已在 WorkBuddy 中绑定微信助理 ClawBot</label>
