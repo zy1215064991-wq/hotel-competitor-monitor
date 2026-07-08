@@ -71,6 +71,27 @@ DryRun 只验证本地配置和输出链路，不调用真实 API。正式运行
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 ```
 
+## 日报说没有昨日同口径数据
+
+第一次正式运行时这是正常现象。脚本只有在 `data/history/` 中找到同查询口径的上一份历史快照时，才会判断涨价、降价、持平。
+
+检查历史快照：
+
+```powershell
+Get-ChildItem .\data\history
+```
+
+如果你改了本店、城市、POI、入住偏移、房型、房间数或住客数，查询口径会变化，脚本不会拿旧口径硬比。
+
+如果不想做历史对比，在 `config/hotel-monitor.json` 中设置：
+
+```json
+"history": {
+  "enabled": false,
+  "directory": "data/history"
+}
+```
+
 ## 推送未到微信
 
 个人微信优先使用 WorkBuddy 自带微信助理 ClawBot，需要在桌面端图形界面扫码绑定。脚本不能代替你绑定个人微信。

@@ -297,6 +297,207 @@ function Get-PriceNumber {
   return 0
 }
 
+function Get-HistoryRoot {
+  param([pscustomobject]$Config)
+  $directory = if ($Config.history.directory) { [string]$Config.history.directory } else { ".\data\history" }
+  if ([System.IO.Path]::IsPathRooted($directory)) { return $directory }
+  return Join-Path $repoRoot $directory
+}
+
+function Get-HistoryEnabled {
+  param([pscustomobject]$Config)
+  if ($null -eq $Config.history) { return $true }
+  if ($null -eq $Config.history.enabled) { return $true }
+  return [bool]$Config.history.enabled
+}
+
+function Get-QueryKey {
+  param([pscustomobject]$Config, [System.Collections.IDictionary]$Dates)
+  $mode = if ($Config.query.checkInDate -and $Config.query.checkOutDate) { "fixed-date" } else { "rolling-offset" }
+  $offset = if ($null -ne $Config.query.offsetDays) { [string]$Config.query.offsetDays } else { "7" }
+  $parts = @(
+    [string]$Config.city,
+    [string]$Config.homeHotelName,
+    [string]$Config.poiName,
+    $mode,
+    $offset,
+    [string]$Config.query.nights,
+    [string]$Config.query.rooms,
+    [string]$Config.query.adults,
+    [string]$Config.query.children,
+    [string]$Config.query.roomType
+  )
+  if ($mode -eq "fixed-date") {
+    $parts += [string]$Dates.CheckIn
+    $parts += [string]$Dates.CheckOut
+  }
+  return ($parts -join "|").ToLowerInvariant()
+}
+
+function Get-HotelKey {
+  param([System.Collections.IDictionary]$Hotel)
+  if ($Hotel.amap_id) { return "amap:" + [string]$Hotel.amap_id }
+  if ($Hotel.baidu_uid) { return "baidu:" + [string]$Hotel.baidu_uid }
+  return "name:" + (Normalize-HotelName -Name ([string]$Hotel.hotel_name))
+}
+
+function Convert-ToHistoryHotel {
+  param([System.Collections.IDictionary]$Hotel, [string]$Role)
+  return [ordered]@{
+    role = $Role
+    key = Get-HotelKey -Hotel $Hotel
+    hotel_name = [string]$Hotel.hotel_name
+    amap_id = [string]$Hotel.amap_id
+    baidu_uid = [string]$Hotel.baidu_uid
+    address = [string]$Hotel.address
+    distance_m = $Hotel.distance_m
+    hotel_type = [string]$Hotel.hotel_type
+    comp_tier = [string]$Hotel.comp_tier
+    fliggy_price = [string]$Hotel.fliggy_price
+    fliggy_price_num = Get-PriceNumber -Price ([string]$Hotel.fliggy_price)
+    amap_rating = [string]$Hotel.amap_rating
+    baidu_rating = [string]$Hotel.baidu_rating
+    baidu_comment_num = [string]$Hotel.baidu_comment_num
+    facility_rating = [string]$Hotel.facility_rating
+    hygiene_rating = [string]$Hotel.hygiene_rating
+    service_rating = [string]$Hotel.service_rating
+  }
+}
+
+function New-HistorySnapshot {
+  param([pscustomobject]$Config, [System.Collections.IDictionary]$Dates, [System.Collections.IDictionary]$HomeHotel, [array]$Candidates)
+  $hotels = @()
+  $hotels += Convert-ToHistoryHotel -Hotel $HomeHotel -Role "本店"
+  foreach ($candidate in $Candidates) {
+    $hotels += Convert-ToHistoryHotel -Hotel $candidate -Role "竞品"
+  }
+  return [ordered]@{
+    schemaVersion = 1
+    generatedAt = (Get-Date -Format s)
+    runDate = (Get-Date -Format "yyyy-MM-dd")
+    dryRun = [bool]$DryRun
+    query = [ordered]@{
+      key = Get-QueryKey -Config $Config -Dates $Dates
+      city = [string]$Config.city
+      homeHotelName = [string]$Config.homeHotelName
+      poiName = [string]$Config.poiName
+      checkIn = [string]$Dates.CheckIn
+      checkOut = [string]$Dates.CheckOut
+      offsetDays = if ($null -ne $Config.query.offsetDays) { [int]$Config.query.offsetDays } else { $null }
+      nights = if ($null -ne $Config.query.nights) { [int]$Config.query.nights } else { 1 }
+      rooms = if ($null -ne $Config.query.rooms) { [int]$Config.query.rooms } else { 1 }
+      adults = if ($null -ne $Config.query.adults) { [int]$Config.query.adults } else { 1 }
+      children = if ($null -ne $Config.query.children) { [int]$Config.query.children } else { 0 }
+      roomType = [string]$Config.query.roomType
+    }
+    hotels = $hotels
+  }
+}
+
+function Get-PreviousHistorySnapshot {
+  param([string]$HistoryRoot, [string]$QueryKey)
+  if (-not (Test-Path -LiteralPath $HistoryRoot)) { return $null }
+  $today = Get-Date -Format "yyyy-MM-dd"
+  $files = Get-ChildItem -LiteralPath $HistoryRoot -Filter "*.json" -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.BaseName -lt $today } |
+    Sort-Object Name -Descending
+  foreach ($file in $files) {
+    try {
+      $snapshot = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+      if ($snapshot.query.key -eq $QueryKey) {
+        return [ordered]@{ Path = $file.FullName; Snapshot = $snapshot }
+      }
+    } catch {
+    }
+  }
+  return $null
+}
+
+function Compare-Price {
+  param([int]$TodayPrice, [int]$PreviousPrice)
+  if ($TodayPrice -le 0 -and $PreviousPrice -le 0) { return [ordered]@{ Trend = "价格缺失"; Delta = ""; DeltaPct = "" } }
+  if ($TodayPrice -le 0) { return [ordered]@{ Trend = "今日价格缺失"; Delta = ""; DeltaPct = "" } }
+  if ($PreviousPrice -le 0) { return [ordered]@{ Trend = "新增价格"; Delta = ""; DeltaPct = "" } }
+  $delta = $TodayPrice - $PreviousPrice
+  $trend = if ($delta -gt 0) { "涨价" } elseif ($delta -lt 0) { "降价" } else { "持平" }
+  $pct = if ($PreviousPrice -gt 0) { [Math]::Round(($delta / $PreviousPrice) * 100, 1) } else { 0 }
+  return [ordered]@{ Trend = $trend; Delta = $delta; DeltaPct = "$pct%" }
+}
+
+function Compare-HistorySnapshots {
+  param([object]$CurrentSnapshot, [object]$PreviousSnapshotInfo, [bool]$HistoryEnabled)
+  if (-not $HistoryEnabled) {
+    return [ordered]@{
+      hasBaseline = $false
+      baselinePath = ""
+      baselineRunDate = ""
+      summary = "历史对比未启用，本次只输出今日横截面。"
+      rows = @()
+    }
+  }
+  if ($null -eq $PreviousSnapshotInfo) {
+    return [ordered]@{
+      hasBaseline = $false
+      baselinePath = ""
+      baselineRunDate = ""
+      summary = "无同口径历史快照，本次只输出今日横截面。"
+      rows = @()
+    }
+  }
+
+  $previous = $PreviousSnapshotInfo.Snapshot
+  $previousByKey = @{}
+  foreach ($hotel in @($previous.hotels)) {
+    if ($hotel.key) { $previousByKey[[string]$hotel.key] = $hotel }
+  }
+
+  $rows = @()
+  $up = 0
+  $down = 0
+  $same = 0
+  $newPrice = 0
+  $missingPrice = 0
+  foreach ($hotel in @($CurrentSnapshot.hotels)) {
+    $previousHotel = $previousByKey[[string]$hotel.key]
+    $previousPrice = if ($previousHotel) { [int]$previousHotel.fliggy_price_num } else { 0 }
+    $comparison = Compare-Price -TodayPrice ([int]$hotel.fliggy_price_num) -PreviousPrice $previousPrice
+    if ($comparison.Trend -eq "涨价") { $up++ }
+    if ($comparison.Trend -eq "降价") { $down++ }
+    if ($comparison.Trend -eq "持平") { $same++ }
+    if ($comparison.Trend -eq "新增价格") { $newPrice++ }
+    if ($comparison.Trend -eq "价格缺失" -or $comparison.Trend -eq "今日价格缺失") { $missingPrice++ }
+    $rows += [ordered]@{
+      role = [string]$hotel.role
+      hotel_name = [string]$hotel.hotel_name
+      comp_tier = [string]$hotel.comp_tier
+      today_price = [string]$hotel.fliggy_price
+      previous_price = if ($previousHotel) { [string]$previousHotel.fliggy_price } else { "" }
+      price_delta = [string]$comparison.Delta
+      price_delta_pct = [string]$comparison.DeltaPct
+      trend = [string]$comparison.Trend
+      today_baidu_comment_num = [string]$hotel.baidu_comment_num
+      previous_baidu_comment_num = if ($previousHotel) { [string]$previousHotel.baidu_comment_num } else { "" }
+    }
+  }
+
+  return [ordered]@{
+    hasBaseline = $true
+    baselinePath = [string]$PreviousSnapshotInfo.Path
+    baselineRunDate = [string]$previous.runDate
+    summary = "同口径历史对比：涨价 $up 家，降价 $down 家，持平 $same 家，新增价格 $newPrice 家，价格缺失 $missingPrice 家。"
+    rows = $rows
+  }
+}
+
+function Save-HistorySnapshot {
+  param([string]$HistoryRoot, [object]$Snapshot, [bool]$HistoryEnabled)
+  if ($DryRun -or -not $HistoryEnabled) { return "" }
+  New-Item -ItemType Directory -Force -Path $HistoryRoot | Out-Null
+  $snapshotPath = Join-Path $HistoryRoot "$($Snapshot.runDate).json"
+  [System.IO.File]::WriteAllText($snapshotPath, ($Snapshot | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
+  return $snapshotPath
+}
+
 function Set-CompTier {
   param([System.Collections.IDictionary]$Candidate, [int]$HomePrice)
   $price = Get-PriceNumber -Price $Candidate.fliggy_price
@@ -323,7 +524,15 @@ function Set-CompTier {
 }
 
 function Write-ReportInput {
-  param([pscustomobject]$Config, [System.Collections.IDictionary]$Dates, [System.Collections.IDictionary]$HomeHotel, [array]$Candidates, [string]$OutputDir)
+  param(
+    [pscustomobject]$Config,
+    [System.Collections.IDictionary]$Dates,
+    [System.Collections.IDictionary]$HomeHotel,
+    [array]$Candidates,
+    [object]$HistoryComparison,
+    [string]$HistorySnapshotPath,
+    [string]$OutputDir
+  )
   $jsonPath = Join-Path $OutputDir "candidates.json"
   $reportPath = Join-Path $OutputDir "report-input.md"
   $latestPath = Join-Path $resolvedOutputRoot "api-combo-latest-report-input.md"
@@ -343,6 +552,14 @@ function Write-ReportInput {
     "- CheckIn: $($Dates.CheckIn)",
     "- CheckOut: $($Dates.CheckOut)",
     "- RadiusMeters: $radiusText",
+    "",
+    "## History",
+    "",
+    "- HistoryEnabled: True",
+    "- CurrentSnapshotPath: $HistorySnapshotPath",
+    "- PreviousSnapshotPath: $($HistoryComparison.baselinePath)",
+    "- BaselineRunDate: $($HistoryComparison.baselineRunDate)",
+    "- Summary: $($HistoryComparison.summary)",
     "",
     "## Data Sources",
     "",
@@ -367,6 +584,18 @@ function Write-ReportInput {
   )
   foreach ($candidate in $Candidates) {
     $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.hotel_type) | $($candidate.reason) |"
+  }
+  $lines += ""
+  $lines += "## Yesterday Comparison"
+  $lines += ""
+  if (-not $HistoryComparison.hasBaseline) {
+    $lines += $HistoryComparison.summary
+  } else {
+    $lines += "| 角色 | 酒店名 | 分层 | 今日价 | 上次价 | 变化 | 变化幅度 | 趋势 | 今日评论数 | 上次评论数 |"
+    $lines += "| --- | --- | --- | --- | --- | ---: | ---: | --- | --- | --- |"
+    foreach ($row in @($HistoryComparison.rows)) {
+      $lines += "| $($row.role) | $($row.hotel_name) | $($row.comp_tier) | $($row.today_price) | $($row.previous_price) | $($row.price_delta) | $($row.price_delta_pct) | $($row.trend) | $($row.today_baidu_comment_num) | $($row.previous_baidu_comment_num) |"
+    }
   }
   [System.IO.File]::WriteAllText($reportPath, ($lines -join "`n"), [System.Text.Encoding]::UTF8)
   New-Item -ItemType Directory -Force -Path $resolvedOutputRoot | Out-Null
@@ -440,9 +669,22 @@ foreach ($candidate in $candidates) {
   Set-CompTier -Candidate $candidate -HomePrice $homePrice
 }
 
-$reportInput = Write-ReportInput -Config $config -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates -OutputDir $outputDir
+$historyEnabled = Get-HistoryEnabled -Config $config
+$historyRoot = Get-HistoryRoot -Config $config
+$historySnapshot = New-HistorySnapshot -Config $config -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates
+$previousHistory = if ($historyEnabled) { Get-PreviousHistorySnapshot -HistoryRoot $historyRoot -QueryKey $historySnapshot.query.key } else { $null }
+$historyComparison = Compare-HistorySnapshots -CurrentSnapshot $historySnapshot -PreviousSnapshotInfo $previousHistory -HistoryEnabled $historyEnabled
+$historySnapshotPath = Save-HistorySnapshot -HistoryRoot $historyRoot -Snapshot $historySnapshot -HistoryEnabled $historyEnabled
+if ([string]::IsNullOrWhiteSpace($historySnapshotPath)) {
+  $historySnapshotPath = if ($historyEnabled) { "DryRun did not save formal history." } else { "History disabled." }
+}
+[System.IO.File]::WriteAllText((Join-Path $outputDir "history-snapshot.json"), ($historySnapshot | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText((Join-Path $outputDir "history-comparison.json"), ($historyComparison | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
+
+$reportInput = Write-ReportInput -Config $config -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates -HistoryComparison $historyComparison -HistorySnapshotPath $historySnapshotPath -OutputDir $outputDir
 
 Write-Host "API combo MVP input generated."
 Write-Host "Output directory: $outputDir"
 Write-Host "Report input: $reportInput"
 Write-Host "Latest report input: $(Join-Path $resolvedOutputRoot 'api-combo-latest-report-input.md')"
+Write-Host "History snapshot: $historySnapshotPath"

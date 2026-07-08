@@ -1,6 +1,6 @@
 ---
 name: hotel-competitor-monitor
-description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监控 API 组合版，使用高德地图候选池、FlyAI/飞猪价格、百度地图口碑补充、WorkBuddy 内置模型和微信助理 ClawBot 推送。
+description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监控 API 组合版，使用高德地图候选池、FlyAI/飞猪价格、百度地图口碑补充、本地历史对比、WorkBuddy 内置模型和微信助理 ClawBot 推送。
 ---
 
 # 酒店竞对每日监控
@@ -17,16 +17,18 @@ description: 帮助用户配置和运行 Windows WorkBuddy 酒店竞对每日监
 6. 先运行 `scripts/run-api-mvp.ps1 -DryRun`。
 7. DryRun 成功后运行 `scripts/run-api-mvp.ps1`。
 8. 读取 `data/api-combo/api-combo-latest-report-input.md` 和 `templates/daily-prompt.md`。
-9. 使用 WorkBuddy 内置模型生成红黄绿日报。
-10. 保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
-11. 默认通过微信助理 ClawBot 推送；如果 ClawBot 未配置，贴出日报全文并说明未推送。
-12. 首次手动跑通后，再帮助用户创建每天 07:30 的 WorkBuddy 自动化任务。
+9. 检查 `History` 和 `Yesterday Comparison`：有同口径历史时判断涨价、降价、持平；首次运行没有历史时只做今日横截面。
+10. 使用 WorkBuddy 内置模型生成红黄绿日报。
+11. 保存到 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
+12. 默认通过微信助理 ClawBot 推送；如果 ClawBot 未配置，贴出日报全文并说明未推送。
+13. 首次手动跑通后，再帮助用户创建每天 07:30 的 WorkBuddy 自动化任务。
 
 ## 约束
 
 - 使用 WorkBuddy 内置模型，不要求用户提供第三方大模型接口密钥。
 - 主流程不使用 OTA 网页浏览器自动化，不要求登录携程、飞猪、美团或去哪儿。
 - 高德负责地图和候选池，FlyAI/飞猪负责价格，百度负责口碑补充。
+- 本地历史保存在 `data/history/`，只和同查询口径的上一份快照比较。
 - 不把 `AMAP_API_KEY`、`FLYAI_API_KEY`、`BAIDU_MAP_AK` 写进任何文件、聊天回复、报告或 GitHub。
 - 不提交 `config/hotel-monitor.json`、`data/`、`reports/` 或任何密钥。
 - 遇到 API 鉴权、额度、并发或 CLI 错误时停止并说明，不编造数据。

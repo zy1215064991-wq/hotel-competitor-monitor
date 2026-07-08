@@ -31,6 +31,13 @@ function readBrands() {
     .filter(Boolean);
 }
 
+function readBoolean(id, fallback) {
+  const value = $(`#${id}`).value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
 function buildConfigJson() {
   return JSON.stringify({
     city: readText("city", "上海"),
@@ -61,6 +68,10 @@ function buildConfigJson() {
     baidu: {
       enrichTopN: readNumber("baiduEnrichTopN", 10)
     },
+    history: {
+      enabled: readBoolean("historyEnabled", true),
+      directory: readText("historyDirectory", "data/history")
+    },
     pushMode: readText("pushMode", "clawbot")
   }, null, 2);
 }
@@ -82,8 +93,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-api-mvp.ps1
 
 4. 读取 data/api-combo/api-combo-latest-report-input.md。
 5. 读取 templates/daily-prompt.md。
-6. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-7. 默认通过微信助理 ClawBot 推送日报全文。
+6. 优先使用其中的 History / Yesterday Comparison 判断调价；没有同口径历史时，只输出今日横截面。
+7. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
+8. 默认通过微信助理 ClawBot 推送日报全文。
 
 ## 约束
 
@@ -95,15 +107,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-api-mvp.ps1
 }
 
 function buildDailyPrompt() {
-  return `# FlyAI/飞猪酒店竞对日报 Prompt
+  return `# 酒店竞对 API 组合日报 Prompt
 
-你是酒店收益管理和竞品筛选助手。请只基于高德、FlyAI/飞猪、百度 API 结果分析，不要编造数据。
+你是酒店收益管理和竞品筛选助手。请只基于高德、FlyAI/飞猪、百度 API 结果和本地历史对比分析，不要编造数据。
 
 请按以下结构输出：
 
 🔴 价格压力与今日风险
 
 - 本店价格信号：
+- 昨日对比：
 - 今日价格压力最大的 3 家：
 - 是否建议立刻跟价：
 - 理由：
@@ -123,7 +136,7 @@ function buildDailyPrompt() {
 - 优先动作2：
 - 明天继续观察什么：
 
-约束：FlyAI/飞猪是单一价格渠道；百度口碑只用于入围候选补充；脱敏价格只能作为价格带；数据不足时直接说明。`;
+约束：FlyAI/飞猪是单一价格渠道；百度口碑只用于入围候选补充；有同口径历史才判断谁调价；脱敏价格只能作为价格带；数据不足时直接说明。`;
 }
 
 function buildRunPrompt() {

@@ -43,6 +43,7 @@ app/index.html
 - 候选池上限。
 - 需要监控的竞对数量。
 - 百度口碑补充数量。
+- 是否启用历史对比。
 
 ## 3. 保存配置
 
@@ -80,7 +81,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 
 ```text
 data/api-combo/api-combo-latest-report-input.md
+data/history/YYYY-MM-DD.json
 ```
+
+第一次正式运行时没有上一份同口径历史，日报只会做今日横截面。第二天开始，脚本会自动读取上一份同口径快照，输出涨价、降价、持平。
 
 ## 6. WorkBuddy 分析和推送
 

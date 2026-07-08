@@ -27,5 +27,9 @@
   "baidu": {
     "enrichTopN": 10
   },
+  "history": {
+    "enabled": true,
+    "directory": "data/history"
+  },
   "pushMode": "clawbot"
 }

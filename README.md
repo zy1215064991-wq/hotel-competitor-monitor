@@ -6,7 +6,7 @@
 高德候选池 -> FlyAI/飞猪价格 -> 百度口碑补充 -> WorkBuddy 内置模型分析 -> 微信助理 ClawBot 推送
 ```
 
-这版不走 OTA 网页浏览器，不要求登录酒店网站，不抓点评页面。目标是把“地图候选 + 飞猪价格 + 百度口碑 + 竞品分层 + 日报推送”稳定跑起来。
+这版不走 OTA 网页浏览器，不要求登录酒店网站，不抓点评页面。目标是把“地图候选 + 飞猪价格 + 百度口碑 + 历史对比 + 竞品分层 + 日报推送”稳定跑起来。
 
 ## 数据边界
 
@@ -15,6 +15,7 @@
 - 口碑补充：百度地图。
 - 分析模型：WorkBuddy 内置模型。
 - 推送：默认微信助理 ClawBot；企业微信群机器人作为备用。
+- 历史对比：本地 `data/history/` 保存每日同口径快照，用于判断涨价、降价、持平。
 - API Key：只从 Windows 环境变量 `AMAP_API_KEY`、`FLYAI_API_KEY`、`BAIDU_MAP_AK` 读取。
 - 私有文件：`.env`、`config/hotel-monitor.json`、`data/`、`reports/` 不提交 GitHub。
 
@@ -68,6 +69,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 
 ```text
 data/api-combo/api-combo-latest-report-input.md
+data/history/YYYY-MM-DD.json
 ```
 
 9. WorkBuddy 读取 `templates/daily-prompt.md` 和 `data/api-combo/api-combo-latest-report-input.md`，生成日报并通过 ClawBot 推送。
@@ -101,6 +103,8 @@ config/hotel-monitor.json
 - `discovery.maxPrice`：最高价格筛选
 - `discovery.sort`：FlyAI 排序方式
 - `baidu.enrichTopN`：百度口碑补充数量
+- `history.enabled`：是否启用历史快照和昨日对比
+- `history.directory`：历史快照目录，默认 `data/history`
 - `pushMode`：`clawbot`、`wecom` 或 `none`
 
 ## 目录说明
@@ -115,6 +119,7 @@ templates/daily-prompt.md    红黄绿日报提示词
 templates/automation-prompt.template.md WorkBuddy Automation 提示词
 docs/                        配置、数据源和推送说明
 data/                        本地 API 原始数据，已忽略
+data/history/                本地每日历史快照，已忽略
 reports/                     本地日报，已忽略
 ```
 

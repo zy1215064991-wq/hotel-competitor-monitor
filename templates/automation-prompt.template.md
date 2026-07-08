@@ -8,6 +8,7 @@
 - 组合采集脚本：scripts/run-api-mvp.ps1
 - 日报提示词：templates/daily-prompt.md
 - API 原始数据目录：data/api-combo
+- 历史快照目录：data/history
 - 日报输出目录：reports
 
 ## 硬约束
@@ -29,11 +30,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-api-mvp.ps1
 ```
 
 4. 读取 data/api-combo/api-combo-latest-report-input.md。
-5. 读取 templates/daily-prompt.md。
-6. 使用 WorkBuddy 内置模型生成红黄绿经营日报。
-7. 保存 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-8. 默认通过微信助理 ClawBot 推送日报全文。
-9. 如果 ClawBot 未绑定或 Automation 未启用 ClawBot 通知，不要伪造成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
+5. 检查其中的 History / Yesterday Comparison 章节：有同口径历史时判断涨价、降价、持平；没有历史时只做今日横截面分析。
+6. 读取 templates/daily-prompt.md。
+7. 使用 WorkBuddy 内置模型生成红黄绿经营日报。
+8. 保存 reports/YYYY-MM-DD-hotel-competitor-daily.md。
+9. 默认通过微信助理 ClawBot 推送日报全文。
+10. 如果 ClawBot 未绑定或 Automation 未启用 ClawBot 通知，不要伪造成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
 
 ## 可选企业微信备用推送
 
@@ -53,5 +55,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -Re
 - API 组合数据输入路径
 - 日报保存路径
 - 查询口径
+- 历史对比状态
 - 推送状态
 - 如果高德、FlyAI 或百度任一数据不完整，明确说明缺口
