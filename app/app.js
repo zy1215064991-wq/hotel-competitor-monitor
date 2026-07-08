@@ -68,6 +68,13 @@ function buildConfigJson() {
     baidu: {
       enrichTopN: readNumber("baiduEnrichTopN", 10)
     },
+    tierRules: {
+      coreRadiusMeters: readNumber("coreRadiusMeters", 2000),
+      pricePressureRatio: readNumber("pricePressureRatio", 0.75),
+      qualityRatingThreshold: readNumber("qualityRatingThreshold", 4.7),
+      qualityRadiusMeters: readNumber("qualityRadiusMeters", 2500),
+      includeAlternativeLodging: readBoolean("includeAlternativeLodging", true)
+    },
     history: {
       enabled: readBoolean("historyEnabled", true),
       directory: readText("historyDirectory", "data/history")
@@ -92,10 +99,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-api-mvp.ps1
 \`\`\`
 
 4. 读取 data/api-combo/api-combo-latest-report-input.md。
-5. 读取 templates/daily-prompt.md。
-6. 优先使用其中的 History / Yesterday Comparison 判断调价；没有同口径历史时，只输出今日横截面。
-7. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-8. 默认通过微信助理 ClawBot 推送日报全文。
+5. 检查 Tier Rules，按用户配置解释核心竞品、价格压力、品质压力和替代竞品。
+6. 读取 templates/daily-prompt.md。
+7. 优先使用其中的 History / Yesterday Comparison 判断调价；没有同口径历史时，只输出今日横截面。
+8. 生成红黄绿日报并保存到 reports/YYYY-MM-DD-hotel-competitor-daily.md。
+9. 默认通过微信助理 ClawBot 推送日报全文。
 
 ## 约束
 

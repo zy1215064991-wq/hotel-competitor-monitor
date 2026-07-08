@@ -74,6 +74,16 @@ data/history/YYYY-MM-DD.json
 
 ## 分层规则
 
+分层规则可以在 `config/hotel-monitor.json` 的 `tierRules` 中调整：
+
+- `coreRadiusMeters`：核心竞品半径。
+- `pricePressureRatio`：价格压力比例，默认低于本店 75% 算价格压力。
+- `qualityRatingThreshold`：品质压力评分阈值。
+- `qualityRadiusMeters`：品质压力可比半径。
+- `includeAlternativeLodging`：是否把公寓、民宿、电竞酒店等作为替代竞品保留。
+
+默认规则：
+
 - 核心竞品：距离近、档位接近、价格重叠、标准酒店、评分和评论数可信。
 - 价格压力：距离近但价格明显更低，会分流价格敏感客人。
 - 品质压力：价格接近或略高，但评分、评论数、设施/卫生/服务更强。

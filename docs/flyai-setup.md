@@ -16,7 +16,19 @@ FlyAI Key 获取地址：
 https://flyai.open.fliggy.com/#ability
 ```
 
-高德和百度 Key 请在各自开放平台创建 Web 服务类型应用。创建后只把 Key 写入 Windows 环境变量。
+高德 Key 获取说明：
+
+```text
+https://lbs.amap.com/api/webservice/create-project-and-key
+```
+
+百度 AK 获取说明：
+
+```text
+https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK
+```
+
+高德请创建 Web 服务类型 Key。百度请创建服务端可用的 AK，并确认地点检索/详情接口权限和配额。创建后只把 Key 写入 Windows 环境变量。
 
 ## 2. 配置环境变量
 

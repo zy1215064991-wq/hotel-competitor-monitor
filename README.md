@@ -24,7 +24,11 @@
 1. 下载或克隆本项目到 Windows 电脑。
 2. 配置 API Key 到 Windows 环境变量：
 
-如果还没有 Key，请到飞猪 AI 开放平台获取：https://flyai.open.fliggy.com/#ability
+如果还没有 Key：
+
+- FlyAI Key：https://flyai.open.fliggy.com/#ability
+- 高德 Key：https://lbs.amap.com/api/webservice/create-project-and-key
+- 百度 AK：https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK
 
 ```powershell
 setx FLYAI_API_KEY "替换成你的 FlyAI Key"
@@ -103,6 +107,11 @@ config/hotel-monitor.json
 - `discovery.maxPrice`：最高价格筛选
 - `discovery.sort`：FlyAI 排序方式
 - `baidu.enrichTopN`：百度口碑补充数量
+- `tierRules.coreRadiusMeters`：核心竞品半径
+- `tierRules.pricePressureRatio`：价格压力阈值，默认低于本店 75% 算价格压力
+- `tierRules.qualityRatingThreshold`：品质压力评分阈值
+- `tierRules.qualityRadiusMeters`：品质压力可比半径
+- `tierRules.includeAlternativeLodging`：是否把公寓、民宿等纳入替代竞品
 - `history.enabled`：是否启用历史快照和昨日对比
 - `history.directory`：历史快照目录，默认 `data/history`
 - `pushMode`：`clawbot`、`wecom` 或 `none`

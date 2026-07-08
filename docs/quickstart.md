@@ -14,6 +14,18 @@ FlyAI Key 获取地址：
 https://flyai.open.fliggy.com/#ability
 ```
 
+高德 Key 获取说明：
+
+```text
+https://lbs.amap.com/api/webservice/create-project-and-key
+```
+
+百度 AK 获取说明：
+
+```text
+https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK
+```
+
 把 Key 设置到 Windows 用户环境变量，不要写进项目文件：
 
 ```powershell
@@ -43,6 +55,7 @@ app/index.html
 - 候选池上限。
 - 需要监控的竞对数量。
 - 百度口碑补充数量。
+- 核心竞品半径、价格压力比例、品质评分阈值、替代住宿策略。
 - 是否启用历史对比。
 
 ## 3. 保存配置

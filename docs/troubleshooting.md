@@ -55,6 +55,27 @@ DryRun 只验证本地配置和输出链路，不调用真实 API。正式运行
 - 增加 `discovery.excludeNameKeywords`，例如停车场、大堂、写字楼、公寓、民宿。
 - 补充 `discovery.brandKeywords`，例如全季、汉庭、亚朵、智选假日。
 
+## 分层不符合你的经营判断
+
+优先调整 `tierRules`：
+
+```json
+"tierRules": {
+  "coreRadiusMeters": 2000,
+  "pricePressureRatio": 0.75,
+  "qualityRatingThreshold": 4.7,
+  "qualityRadiusMeters": 2500,
+  "includeAlternativeLodging": true
+}
+```
+
+常见调整：
+
+- 想让核心竞品更严格：调小 `coreRadiusMeters`。
+- 价格敏感市场：调高 `pricePressureRatio`，例如 `0.85`。
+- 只看非常强的口碑压力：调高 `qualityRatingThreshold`。
+- 不想看到公寓/民宿：把 `includeAlternativeLodging` 改成 `false`。
+
 ## 查询口径不一致
 
 优先在本地向导 `app/index.html` 修改：

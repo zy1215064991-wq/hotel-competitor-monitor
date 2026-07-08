@@ -27,6 +27,13 @@
   "baidu": {
     "enrichTopN": 10
   },
+  "tierRules": {
+    "coreRadiusMeters": 2000,
+    "pricePressureRatio": 0.75,
+    "qualityRatingThreshold": 4.7,
+    "qualityRadiusMeters": 2500,
+    "includeAlternativeLodging": true
+  },
   "history": {
     "enabled": true,
     "directory": "data/history"

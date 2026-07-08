@@ -297,6 +297,34 @@ function Get-PriceNumber {
   return 0
 }
 
+function Get-RuleNumber {
+  param([object]$Rules, [string]$Name, [double]$Default)
+  if ($null -ne $Rules -and $Rules.PSObject.Properties[$Name] -and $null -ne $Rules.$Name) {
+    return [double]$Rules.$Name
+  }
+  return $Default
+}
+
+function Get-RuleBool {
+  param([object]$Rules, [string]$Name, [bool]$Default)
+  if ($null -ne $Rules -and $Rules.PSObject.Properties[$Name] -and $null -ne $Rules.$Name) {
+    return [bool]$Rules.$Name
+  }
+  return $Default
+}
+
+function Get-TierRules {
+  param([pscustomobject]$Config)
+  $rules = $Config.tierRules
+  return [ordered]@{
+    coreRadiusMeters = [int](Get-RuleNumber -Rules $rules -Name "coreRadiusMeters" -Default 2000)
+    pricePressureRatio = Get-RuleNumber -Rules $rules -Name "pricePressureRatio" -Default 0.75
+    qualityRatingThreshold = Get-RuleNumber -Rules $rules -Name "qualityRatingThreshold" -Default 4.7
+    qualityRadiusMeters = [int](Get-RuleNumber -Rules $rules -Name "qualityRadiusMeters" -Default 2500)
+    includeAlternativeLodging = Get-RuleBool -Rules $rules -Name "includeAlternativeLodging" -Default $true
+  }
+}
+
 function Get-HistoryRoot {
   param([pscustomobject]$Config)
   $directory = if ($Config.history.directory) { [string]$Config.history.directory } else { ".\data\history" }
@@ -499,22 +527,27 @@ function Save-HistorySnapshot {
 }
 
 function Set-CompTier {
-  param([System.Collections.IDictionary]$Candidate, [int]$HomePrice)
+  param([System.Collections.IDictionary]$Candidate, [int]$HomePrice, [System.Collections.IDictionary]$Rules)
   $price = Get-PriceNumber -Price $Candidate.fliggy_price
   $rating = if ($Candidate.baidu_rating) { [double]$Candidate.baidu_rating } elseif ($Candidate.amap_rating) { [double]$Candidate.amap_rating } else { 0 }
   if ($Candidate.hotel_type -eq "噪音") {
     $Candidate.comp_tier = "剔除"
     $Candidate.reason = "非住宿或无关 POI"
   } elseif ($Candidate.hotel_type -eq "替代住宿") {
-    $Candidate.comp_tier = "替代竞品"
-    $Candidate.reason = "距离近但业态不是标准酒店"
-  } elseif ($HomePrice -gt 0 -and $price -gt 0 -and $price -lt [int]($HomePrice * 0.75)) {
+    if ($Rules.includeAlternativeLodging) {
+      $Candidate.comp_tier = "替代竞品"
+      $Candidate.reason = "距离近但业态不是标准酒店"
+    } else {
+      $Candidate.comp_tier = "剔除"
+      $Candidate.reason = "配置为不纳入公寓、民宿等替代住宿"
+    }
+  } elseif ($HomePrice -gt 0 -and $price -gt 0 -and $price -lt [int]($HomePrice * $Rules.pricePressureRatio)) {
     $Candidate.comp_tier = "价格压力"
     $Candidate.reason = "价格明显低于本店"
-  } elseif ($rating -ge 4.7 -and $Candidate.distance_m -le 2500) {
+  } elseif ($rating -ge $Rules.qualityRatingThreshold -and $Candidate.distance_m -le $Rules.qualityRadiusMeters) {
     $Candidate.comp_tier = "品质压力"
     $Candidate.reason = "评分较高且距离可比"
-  } elseif ($Candidate.distance_m -le 2000) {
+  } elseif ($Candidate.distance_m -le $Rules.coreRadiusMeters) {
     $Candidate.comp_tier = "核心竞品"
     $Candidate.reason = "距离近且属于标准住宿"
   } else {
@@ -537,6 +570,7 @@ function Write-ReportInput {
   $reportPath = Join-Path $OutputDir "report-input.md"
   $latestPath = Join-Path $resolvedOutputRoot "api-combo-latest-report-input.md"
   $radiusText = if ($Config.discovery.radiusMeters) { [string]$Config.discovery.radiusMeters } else { "2000" }
+  $tierRules = Get-TierRules -Config $Config
   [System.IO.File]::WriteAllText($jsonPath, ($Candidates | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
   $lines = @(
     "# API Combo Hotel Competitor Report Input",
@@ -560,6 +594,14 @@ function Write-ReportInput {
     "- PreviousSnapshotPath: $($HistoryComparison.baselinePath)",
     "- BaselineRunDate: $($HistoryComparison.baselineRunDate)",
     "- Summary: $($HistoryComparison.summary)",
+    "",
+    "## Tier Rules",
+    "",
+    "- CoreRadiusMeters: $($tierRules.coreRadiusMeters)",
+    "- PricePressureRatio: $($tierRules.pricePressureRatio)",
+    "- QualityRatingThreshold: $($tierRules.qualityRatingThreshold)",
+    "- QualityRadiusMeters: $($tierRules.qualityRadiusMeters)",
+    "- IncludeAlternativeLodging: $($tierRules.includeAlternativeLodging)",
     "",
     "## Data Sources",
     "",
@@ -665,8 +707,9 @@ foreach ($candidate in $baiduTargets) {
 }
 
 $homePrice = Get-PriceNumber -Price $homeCandidate.fliggy_price
+$tierRules = Get-TierRules -Config $config
 foreach ($candidate in $candidates) {
-  Set-CompTier -Candidate $candidate -HomePrice $homePrice
+  Set-CompTier -Candidate $candidate -HomePrice $homePrice -Rules $tierRules
 }
 
 $historyEnabled = Get-HistoryEnabled -Config $config
