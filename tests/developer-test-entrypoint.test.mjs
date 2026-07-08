@@ -10,10 +10,14 @@ const exists = (relativePath) => fs.existsSync(path.join(repoRoot, relativePath)
 assert.ok(exists("package.json"), "公开仓库应提供标准 package.json 测试入口");
 assert.ok(exists("tests/run-all.mjs"), "公开仓库应提供聚合测试脚本");
 assert.ok(exists(".github/workflows/ci.yml"), "公开仓库应提供 GitHub Actions 零额度 CI");
+assert.ok(exists("CONTRIBUTING.md"), "公开仓库应提供协作者安全贡献说明");
+assert.ok(exists(".github/pull_request_template.md"), "公开仓库应提供 PR 安全检查模板");
 
 const packageJson = JSON.parse(read("package.json"));
 const runner = read("tests/run-all.mjs");
 const workflow = read(".github/workflows/ci.yml");
+const contributing = read("CONTRIBUTING.md");
+const pullRequestTemplate = read(".github/pull_request_template.md");
 const readme = read("README.md");
 
 assert.equal(packageJson.private, true, "本项目不是 npm 发布包，应标记 private");
@@ -29,5 +33,16 @@ assert.match(workflow, /pull_request/, "CI 应覆盖 pull request");
 assert.match(workflow, /push/, "CI 应覆盖 push");
 assert.doesNotMatch(workflow, /-Formal/, "CI 不得触发正式采集");
 assert.doesNotMatch(workflow, /secrets\.|AMAP_API_KEY|FLYAI_API_KEY|BAIDU_MAP_AK/, "CI 不得读取真实 API Key");
+assert.match(contributing, /npm test/, "贡献说明应要求运行 npm test");
+assert.match(contributing, /verify-local\.ps1/, "贡献说明应要求运行零额度本地验收");
+assert.match(contributing, /不要提交.*config\/hotel-monitor\.json/s, "贡献说明应禁止提交本地私有配置");
+assert.match(contributing, /不要提交.*data\/.*reports\//s, "贡献说明应禁止提交本地数据和日报");
+assert.match(contributing, /不要.*-Formal/s, "贡献说明应提醒 PR 验证不要跑正式采集");
+assert.doesNotMatch(contributing, /sk-[A-Za-z0-9]{10,}/, "贡献说明不能包含真实 Key");
+assert.match(pullRequestTemplate, /npm test/, "PR 模板应要求 npm test");
+assert.match(pullRequestTemplate, /verify-local\.ps1/, "PR 模板应要求零额度验收");
+assert.match(pullRequestTemplate, /没有提交.*Key|未提交.*Key/, "PR 模板应要求确认未提交 Key");
+assert.match(pullRequestTemplate, /没有运行.*-Formal|未运行.*-Formal/, "PR 模板应要求确认未运行正式采集");
 assert.match(readme, /npm test/, "README 应说明标准本地测试入口");
 assert.match(readme, /GitHub Actions/, "README 应说明 GitHub Actions 零额度验收");
+assert.match(readme, /CONTRIBUTING\.md/, "README 应链接协作者贡献说明");

@@ -131,6 +131,8 @@ npm test
 
 GitHub Actions 也会在 push 和 pull request 时运行同一个 `npm test`。这个 CI 不配置任何三方 API Key，只做零额度静态/本地验收。
 
+协作者提交改动前请阅读 `CONTRIBUTING.md`，里面写了不能提交的私有文件、PR 验证边界和模板同步规则。
+
 9. 正式运行：
 
 ```powershell
