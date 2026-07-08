@@ -160,7 +160,7 @@ function buildDailyPrompt() {
 }
 
 function buildRunPrompt() {
-  return "请阅读 workbuddy-start-here.md，并按 API 组合流程跑一次酒店竞对每日监控。先运行 scripts/run-api-mvp.ps1，读取 data/api-combo/api-combo-latest-report-input.md，再按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。";
+  return "请阅读 workbuddy-start-here.md，并按 API 组合流程跑一次酒店竞对每日监控。如缺少 Key，先引导我打开 app/flyai-guide.html、app/amap-guide.html、app/baidu-guide.html。先运行 scripts/run-api-mvp.ps1 -DryRun，再读取 data/api-combo/api-combo-latest-report-input.md，按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。";
 }
 
 function generateFiles() {

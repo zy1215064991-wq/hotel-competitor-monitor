@@ -52,7 +52,14 @@ $hasBaidu = Test-PrivateEnv -Name "BAIDU_MAP_AK" -Hint "your_baidu_ak"
 
 if (-not ($hasAmap -and $hasFlyai -and $hasBaidu)) {
   Write-Host ""
-  Write-Host "FlyAI Key can be obtained here: https://flyai.open.fliggy.com/#ability"
+  Write-Host "Local setup guides:"
+  Write-Host "- app\flyai-guide.html"
+  Write-Host "- app\amap-guide.html"
+  Write-Host "- app\baidu-guide.html"
+  Write-Host "Official key entries:"
+  Write-Host "- FlyAI: https://flyai.open.fliggy.com/#ability"
+  Write-Host "- Amap: https://lbs.amap.com/api/webservice/create-project-and-key"
+  Write-Host "- Baidu: https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK"
   Write-Host "After setting env vars, reopen WorkBuddy or PowerShell before running the workflow."
 }
 

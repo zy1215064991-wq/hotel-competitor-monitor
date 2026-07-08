@@ -6,6 +6,11 @@
 - `FLYAI_API_KEY`：FlyAI/飞猪，酒店价格。
 - `BAIDU_MAP_AK`：百度地图，评论数和细分评分补充。
 
+高德和百度也有独立引导：
+
+- `docs/amap-setup.md`
+- `docs/baidu-setup.md`
+
 所有 Key 都只允许保存在 Windows 环境变量中，不要写进项目文件、Markdown、日报、聊天回复或 GitHub。
 
 ## 1. 获取 Key

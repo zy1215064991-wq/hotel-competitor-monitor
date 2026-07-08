@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FlyAI / 飞猪价格源引导</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">价格源</p>
+          <h1>FlyAI / 飞猪价格源引导</h1>
+        </div>
+        <a class="back-link" href="./index.html">返回配置向导</a>
+      </header>
+
+      <section class="panel is-active">
+        <div class="section-head">
+          <h2>配置顺序</h2>
+          <p>FlyAI 只负责飞猪生态价格。Key 只放 Windows 环境变量，项目文件里不要写明文。</p>
+        </div>
+
+        <div class="guide-list">
+          <article class="guide-step">
+            <span>1</span>
+            <div>
+              <h3>获取 FlyAI Key</h3>
+              <p>打开官方入口，申请酒店搜索能力。</p>
+              <a href="https://flyai.open.fliggy.com/#ability" target="_blank" rel="noreferrer">https://flyai.open.fliggy.com/#ability</a>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>2</span>
+            <div>
+              <h3>写入 Windows 环境变量</h3>
+              <code>setx FLYAI_API_KEY "替换成你的 FlyAI Key"</code>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>3</span>
+            <div>
+              <h3>安装 FlyAI CLI</h3>
+              <code>npm i -g @fly-ai/flyai-cli --registry=https://registry.npmmirror.com</code>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>4</span>
+            <div>
+              <h3>本地自检</h3>
+              <code>Get-Command flyai</code>
+              <p>重新打开 WorkBuddy 或 PowerShell 后再检查，避免旧进程读不到新环境变量。</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="notice">
+          <strong>运行边界</strong>
+          <p>DryRun 不调用 FlyAI。正式运行后，报告里的 FlyAI Usage 会显示真实调用次数、空结果、失败和脱敏价格数量。</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

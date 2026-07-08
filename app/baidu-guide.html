@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>百度地图口碑补充引导</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">口碑补充源</p>
+          <h1>百度地图口碑补充引导</h1>
+        </div>
+        <a class="back-link" href="./index.html">返回配置向导</a>
+      </header>
+
+      <section class="panel is-active">
+        <div class="section-head">
+          <h2>配置顺序</h2>
+          <p>百度只对入围候选补评论数、评分和细分口碑。默认启用缓存和每日调用上限，避免误耗额度。</p>
+        </div>
+
+        <div class="guide-list">
+          <article class="guide-step">
+            <span>1</span>
+            <div>
+              <h3>获取服务端 AK</h3>
+              <p>打开官方说明，创建服务端可用 AK。</p>
+              <a href="https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK" target="_blank" rel="noreferrer">https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK</a>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>2</span>
+            <div>
+              <h3>确认地点接口权限</h3>
+              <p>确保 AK 可用于地点检索和地点详情。项目不会全量扫百度，只补充进入候选池的酒店。</p>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>3</span>
+            <div>
+              <h3>写入 Windows 环境变量</h3>
+              <code>setx BAIDU_MAP_AK "替换成你的百度 AK"</code>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>4</span>
+            <div>
+              <h3>先用低额度试跑</h3>
+              <code>"dailyCallLimit": 0</code>
+              <p>额度紧张时先设为 0，只验证高德、FlyAI 和报告链路。确认没问题后再调到 5、10 或 20。</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="notice">
+          <strong>省额度策略</strong>
+          <p>命中 data/cache/baidu/ 本地缓存不会调用百度。DryRun 不调用百度。正式报告里的 Baidu Usage 会显示缓存命中、真实调用次数和被限额跳过数量。</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

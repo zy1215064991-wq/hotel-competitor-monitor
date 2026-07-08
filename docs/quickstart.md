@@ -14,16 +14,34 @@ FlyAI Key 获取地址：
 https://flyai.open.fliggy.com/#ability
 ```
 
+本地引导页面：
+
+```text
+app/flyai-guide.html
+```
+
 高德 Key 获取说明：
 
 ```text
 https://lbs.amap.com/api/webservice/create-project-and-key
 ```
 
+本地引导页面：
+
+```text
+app/amap-guide.html
+```
+
 百度 AK 获取说明：
 
 ```text
 https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK
+```
+
+本地引导页面：
+
+```text
+app/baidu-guide.html
 ```
 
 把 Key 设置到 Windows 用户环境变量，不要写进项目文件：

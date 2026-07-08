@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>高德地图候选池引导</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">主地图源</p>
+          <h1>高德地图候选池引导</h1>
+        </div>
+        <a class="back-link" href="./index.html">返回配置向导</a>
+      </header>
+
+      <section class="panel is-active">
+        <div class="section-head">
+          <h2>配置顺序</h2>
+          <p>高德负责本店定位和周边酒店候选池。项目会使用文本检索和周边检索，不负责价格和评论。</p>
+        </div>
+
+        <div class="guide-list">
+          <article class="guide-step">
+            <span>1</span>
+            <div>
+              <h3>创建 Web 服务 Key</h3>
+              <p>打开官方入口，创建应用并选择 Web 服务类型 Key。</p>
+              <a href="https://lbs.amap.com/api/webservice/create-project-and-key" target="_blank" rel="noreferrer">https://lbs.amap.com/api/webservice/create-project-and-key</a>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>2</span>
+            <div>
+              <h3>确认服务权限</h3>
+              <p>确保 Key 可用于地点文本检索和周边检索。后续脚本会按城市、本店名称、POI 和半径生成候选池。</p>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>3</span>
+            <div>
+              <h3>写入 Windows 环境变量</h3>
+              <code>setx AMAP_API_KEY "替换成你的高德 Key"</code>
+            </div>
+          </article>
+          <article class="guide-step">
+            <span>4</span>
+            <div>
+              <h3>本地自检</h3>
+              <code>if ($env:AMAP_API_KEY) { "AMAP_API_KEY 已配置" } else { "缺少 AMAP_API_KEY" }</code>
+              <p>不要用 echo 打印 Key 明文。配置后重新打开 WorkBuddy 或 PowerShell。</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="notice">
+          <strong>运行边界</strong>
+          <p>DryRun 不调用高德。正式运行会先定位本店，再按半径获取候选池，结果写入 data/api-combo/。</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

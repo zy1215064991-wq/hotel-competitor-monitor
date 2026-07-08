@@ -32,6 +32,12 @@
 - 高德 Key：https://lbs.amap.com/api/webservice/create-project-and-key
 - 百度 AK：https://lbsyun.baidu.com/index.php?title=FAQ%2FobtainAK
 
+本地引导页面：
+
+- `app/flyai-guide.html`
+- `app/amap-guide.html`
+- `app/baidu-guide.html`
+
 ```powershell
 setx FLYAI_API_KEY "替换成你的 FlyAI Key"
 setx AMAP_API_KEY "替换成你的高德 Key"
@@ -151,6 +157,8 @@ reports/                     本地日报，已忽略
 
 ## 更多说明
 
-- `docs/flyai-setup.md`：高德、FlyAI、百度 Key 和 CLI 配置。
+- `docs/flyai-setup.md`：FlyAI Key 和 CLI 配置。
+- `docs/amap-setup.md`：高德 Web 服务 Key 配置。
+- `docs/baidu-setup.md`：百度 AK、缓存和每日调用上限配置。
 - `docs/data-sources.md`：为什么选择高德 + FlyAI/飞猪 + 百度。
 - `docs/push-setup.md`：ClawBot 和企业微信推送。
