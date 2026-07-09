@@ -35,6 +35,8 @@ FlyAI/飞猪 -> 本店和候选酒店价格
 
 脚本会先给候选池补 FlyAI 价格，再按 `discovery.maxPrice`、`discovery.sort` 和 `discovery.competitorCount` 收口最终名单。`maxPrice` 只过滤已经拿到明确价格且高于上限的候选；价格缺失或脱敏时会保留，并在日报里说明数据不足。
 
+默认排序是 `balanced`，也就是可比性优先。它会给候选写入 `SelectionBucket`、`SelectionScore` 和 `SelectionReason`：标准酒店、档位接近、价格带可比、距离近、评分高、有精确价格会加分；公寓、民宿、酒店式公寓等替代住宿会保留为“替代观察”，但不会轻易挤占核心竞品名额。用户仍可手动切换到 `distance_asc`、`price_asc`、`rate_desc` 或 `no_rank`。
+
 ## FlyAI/飞猪作为价格源
 
 FlyAI/飞猪适合查询入住日期下的价格信号：

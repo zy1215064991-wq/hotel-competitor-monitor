@@ -21,7 +21,7 @@
     "maxCandidates": 20,
     "brandKeywords": ["全季", "亚朵", "汉庭", "如家精选"],
     "maxPrice": 600,
-    "sort": "distance_asc",
+    "sort": "balanced",
     "excludeNameKeywords": ["停车场", "大堂", "前台", "写字楼", "商场", "公寓入口"]
   },
   "baidu": {

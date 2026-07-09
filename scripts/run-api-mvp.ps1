@@ -134,6 +134,9 @@ function Convert-AmapCandidate {
     image_num = ""
     baidu_source = ""
     baidu_cache_hit = $false
+    selection_score = 0
+    selection_bucket = ""
+    selection_reason = ""
     comp_tier = ""
     reason = ""
   }
@@ -153,6 +156,15 @@ function Join-CommandLine {
   param([string[]]$FlyArgs)
   $quoted = $FlyArgs | ForEach-Object { if ($_ -match "\s") { '"' + ($_ -replace '"', '\"') + '"' } else { $_ } }
   return "flyai " + ($quoted -join " ")
+}
+
+function Get-CandidateOutputName {
+  param([System.Collections.IDictionary]$Candidate, [int]$Index)
+  $id = [string]$Candidate.amap_id
+  if ([string]::IsNullOrWhiteSpace($id)) { $id = [string]$Candidate.hotel_name }
+  $safe = ($id -replace "[^a-zA-Z0-9_-]", "_").Trim("_")
+  if ([string]::IsNullOrWhiteSpace($safe)) { $safe = "candidate" }
+  return ("{0:D3}-{1}" -f $Index, $safe)
 }
 
 function ConvertFrom-FlyAIOutput {
@@ -186,6 +198,15 @@ function Get-FlyAISettings {
     requestDelayMs = [int](Get-FlyAISetting -Config $Config -Name "requestDelayMs" -Default 800)
     maxRetries = [int](Get-FlyAISetting -Config $Config -Name "maxRetries" -Default 1)
   }
+}
+
+function Get-FlyAISort {
+  param([pscustomobject]$Config)
+  $sort = if ($Config.discovery -and $Config.discovery.sort) { [string]$Config.discovery.sort } else { "distance_asc" }
+  if (@("distance_asc", "price_asc", "rate_desc", "no_rank") -contains $sort) {
+    return $sort
+  }
+  return "distance_asc"
 }
 
 function New-FlyAIStats {
@@ -239,7 +260,7 @@ function Invoke-FlyAIPrice {
     return $null
   }
   $Stats.RequestsAttempted = [int]$Stats.RequestsAttempted + 1
-  $flyaiSort = if ($Config.discovery.sort) { [string]$Config.discovery.sort } else { "distance_asc" }
+  $flyaiSort = Get-FlyAISort -Config $Config
   $args = @("search-hotel", "--dest-name", [string]$Config.city, "--check-in-date", [string]$Dates.CheckIn, "--check-out-date", [string]$Dates.CheckOut, "--key-words", $Keyword, "--sort", $flyaiSort)
   if ($DryRun) {
     $dry = '{"data":{"itemList":[{"name":"' + ($Keyword -replace '"','') + '","price":"¥399","detailUrl":"https://a.feizhu.com/dry","star":"舒适型"}]},"message":"success","status":0}'
@@ -854,13 +875,141 @@ function Test-MaxPriceAllowed {
   return ($price -le $MaxPrice)
 }
 
+function Get-HotelLevelRank {
+  param([string]$Level, [string]$Type)
+  $text = "$Level $Type"
+  if ($text -match "豪华|五星") { return 4 }
+  if ($text -match "高档|四星") { return 3 }
+  if ($text -match "舒适|三星") { return 2 }
+  if ($text -match "经济") { return 1 }
+  if ($text -match "公寓|民宿|旅舍|客栈") { return 0 }
+  return 0
+}
+
+function Get-BrandKeywordHit {
+  param([pscustomobject]$Config, [System.Collections.IDictionary]$Candidate)
+  if ($null -eq $Config.discovery -or $null -eq $Config.discovery.brandKeywords) { return "" }
+  foreach ($keyword in @($Config.discovery.brandKeywords)) {
+    if (-not [string]::IsNullOrWhiteSpace([string]$keyword) -and [string]$Candidate.hotel_name -like "*$keyword*") {
+      return [string]$keyword
+    }
+  }
+  return ""
+}
+
+function Set-SelectionScore {
+  param([pscustomobject]$Config, [System.Collections.IDictionary]$Candidate, [System.Collections.IDictionary]$HomeHotel)
+  $score = 0.0
+  $reasons = @()
+  $hotelType = [string]$Candidate.hotel_type
+  if ($hotelType -eq "噪音") {
+    $score -= 100
+    $Candidate.selection_bucket = "剔除"
+    $reasons += "非住宿或无关 POI"
+  } elseif ($hotelType -eq "替代住宿") {
+    $score -= 45
+    $Candidate.selection_bucket = "替代观察"
+    $reasons += "公寓/民宿等替代住宿，不抢核心竞品名额"
+  } else {
+    $score += 45
+    $Candidate.selection_bucket = "核心可比"
+    $reasons += "标准酒店业态"
+  }
+
+  $distance = if ($Candidate.distance_m) { [int]$Candidate.distance_m } else { 999999 }
+  if ($distance -le 500) {
+    $score += 25
+    $reasons += "500m内近场"
+  } elseif ($distance -le 1000) {
+    $score += 18
+    $reasons += "1km内可比"
+  } elseif ($distance -le 2000) {
+    $score += 10
+    $reasons += "2km内同商圈"
+  } else {
+    $score += 3
+    $reasons += "距离较远"
+  }
+
+  $rating = Get-CandidateRatingNumber -Candidate $Candidate
+  if ($rating -gt 0) {
+    $score += [Math]::Min(20, $rating * 4)
+    $reasons += "评分$rating"
+  }
+
+  $homeLevelRank = Get-HotelLevelRank -Level ([string]$HomeHotel.amap_level) -Type ([string]$HomeHotel.amap_type)
+  $candidateLevelRank = Get-HotelLevelRank -Level ([string]$Candidate.amap_level) -Type ([string]$Candidate.amap_type)
+  if ($homeLevelRank -gt 0 -and $candidateLevelRank -gt 0) {
+    $diff = [Math]::Abs($homeLevelRank - $candidateLevelRank)
+    $levelScore = [Math]::Max(0, 18 - ($diff * 7))
+    $score += $levelScore
+    if ($diff -eq 0) {
+      $reasons += "档位相同"
+    } else {
+      $reasons += "档位差${diff}级"
+    }
+  } elseif ($hotelType -eq "标准酒店") {
+    $score += 5
+    $reasons += "档位缺失但为标准酒店"
+  }
+
+  $homePrice = Get-PriceNumber -Price ([string]$HomeHotel.fliggy_price)
+  $price = Get-PriceNumber -Price ([string]$Candidate.fliggy_price)
+  if ($homePrice -gt 0 -and $price -gt 0) {
+    $ratio = $price / $homePrice
+    if ($ratio -ge 0.65 -and $ratio -le 1.35) {
+      $score += 15
+      $reasons += "价格带接近"
+    } elseif ($ratio -ge 0.45 -and $ratio -le 1.6) {
+      $score += 8
+      $reasons += "价格带可参考"
+    } elseif ($ratio -lt 0.45) {
+      $score += 3
+      if ($hotelType -eq "标准酒店") { $Candidate.selection_bucket = "价格哨兵" }
+      $reasons += "价格显著低于本店"
+    } else {
+      $score += 2
+      $reasons += "价格高于本店较多"
+    }
+  } else {
+    $score -= 3
+    $reasons += "价格缺失"
+  }
+
+  if ([string]$Candidate.fliggy_price_quality -eq "exact") {
+    $score += 6
+    $reasons += "精确价格"
+  } elseif ([string]$Candidate.fliggy_price_quality -eq "masked") {
+    $score -= 2
+    $reasons += "价格脱敏"
+  } elseif ([string]$Candidate.fliggy_status -eq "empty") {
+    $score -= 8
+    $reasons += "飞猪无挂牌"
+  } elseif ([string]$Candidate.fliggy_status -eq "failed") {
+    $score -= 10
+    $reasons += "价格查询失败"
+  }
+
+  $brandHit = Get-BrandKeywordHit -Config $Config -Candidate $Candidate
+  if ($brandHit) {
+    $score += 8
+    $reasons += "命中品牌关键词：$brandHit"
+  }
+
+  $Candidate.selection_score = [Math]::Round($score, 1)
+  $Candidate.selection_reason = ($reasons -join "；")
+}
+
 function Select-FinalCandidates {
-  param([pscustomobject]$Config, [array]$Candidates)
+  param([pscustomobject]$Config, [array]$Candidates, [System.Collections.IDictionary]$HomeHotel)
   $competitorCount = Get-DiscoveryNumber -Config $Config -Name "competitorCount" -Default 5
   if ($competitorCount -le 0) { $competitorCount = 5 }
   $maxPrice = Get-DiscoveryNumber -Config $Config -Name "maxPrice" -Default 0
-  $sort = Get-DiscoveryText -Config $Config -Name "sort" -Default "distance_asc"
+  $sort = Get-DiscoveryText -Config $Config -Name "sort" -Default "balanced"
   $eligible = @($Candidates | Where-Object { Test-MaxPriceAllowed -Candidate $_ -MaxPrice $maxPrice })
+  foreach ($candidate in $eligible) {
+    Set-SelectionScore -Config $Config -Candidate $candidate -HomeHotel $HomeHotel
+  }
 
   if ($sort -eq "price_asc") {
     $ordered = @($eligible | Sort-Object @{ Expression = { $price = Get-PriceNumber -Price ([string]$_.fliggy_price); if ($price -gt 0) { $price } else { [int]::MaxValue } } }, @{ Expression = { [int]$_.distance_m } })
@@ -868,8 +1017,10 @@ function Select-FinalCandidates {
     $ordered = @($eligible | Sort-Object @{ Expression = { Get-CandidateRatingNumber -Candidate $_ }; Descending = $true }, @{ Expression = { [int]$_.distance_m } })
   } elseif ($sort -eq "no_rank") {
     $ordered = @($eligible)
-  } else {
+  } elseif ($sort -eq "distance_asc") {
     $ordered = @($eligible | Sort-Object @{ Expression = { [int]$_.distance_m } })
+  } else {
+    $ordered = @($eligible | Sort-Object @{ Expression = { [double]$_.selection_score }; Descending = $true }, @{ Expression = { [int]$_.distance_m } })
   }
 
   return @($ordered | Select-Object -First $competitorCount)
@@ -901,7 +1052,7 @@ function Write-ReportInput {
   $competitorCountText = if ($Config.discovery.competitorCount) { [string]$Config.discovery.competitorCount } else { "" }
   $maxCandidatesText = if ($Config.discovery.maxCandidates) { [string]$Config.discovery.maxCandidates } else { "20" }
   $maxPriceText = if ($Config.discovery.maxPrice) { [string]$Config.discovery.maxPrice } else { "" }
-  $sortText = if ($Config.discovery.sort) { [string]$Config.discovery.sort } else { "distance_asc" }
+  $sortText = if ($Config.discovery.sort) { [string]$Config.discovery.sort } else { "balanced" }
   $tierRules = Get-TierRules -Config $Config
   $candidateJson = if ($candidateList.Count -eq 0) { "[]" } else { $candidateList | ConvertTo-Json -Depth 20 }
   [System.IO.File]::WriteAllText($jsonPath, $candidateJson, [System.Text.Encoding]::UTF8)
@@ -995,11 +1146,11 @@ function Write-ReportInput {
     "",
     "## Candidates",
     "",
-    "| 分层 | 酒店名 | 距离m | 飞猪价 | PriceStatus | PriceQuality | 高德评分 | 百度评分 | 评论数 | 百度来源 | 类型 | 理由 |",
-    "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |"
+    "| 分层 | 酒店名 | 距离m | 飞猪价 | PriceStatus | PriceQuality | 高德评分 | 百度评分 | 评论数 | 百度来源 | 类型 | SelectionBucket | SelectionScore | SelectionReason | 理由 |",
+    "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |"
   )
   foreach ($candidate in $candidateList) {
-    $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.fliggy_status) | $($candidate.fliggy_price_quality) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.baidu_source) | $($candidate.hotel_type) | $($candidate.reason) |"
+    $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.fliggy_status) | $($candidate.fliggy_price_quality) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.baidu_source) | $($candidate.hotel_type) | $($candidate.selection_bucket) | $($candidate.selection_score) | $($candidate.selection_reason) | $($candidate.reason) |"
   }
   $lines += ""
   $lines += "## Yesterday Comparison"
@@ -1061,14 +1212,15 @@ foreach ($poi in $nearbyPois) {
   if ($candidates.Count -ge $maxCandidates) { break }
 }
 
+$candidateIndex = 0
 foreach ($candidate in $candidates) {
-  $safeName = ($candidate.hotel_name -replace "[^a-zA-Z0-9_-]", "_").Trim("_")
-  if (-not $safeName) { $safeName = "candidate" }
+  $candidateIndex += 1
+  $safeName = Get-CandidateOutputName -Candidate $candidate -Index $candidateIndex
   $flyResult = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword $candidate.hotel_name -OutputPath (Join-Path $outputDir "flyai-$safeName.txt") -Settings $flyaiSettings -Stats $flyaiStats
   Merge-FlyAIPrice -Candidate $candidate -FlyResult $flyResult -Stats $flyaiStats
 }
 
-$candidates = Select-FinalCandidates -Config $config -Candidates $candidates
+$candidates = Select-FinalCandidates -Config $config -Candidates $candidates -HomeHotel $homeCandidate
 
 $baiduStats = New-BaiduStats -Settings $baiduSettings
 $baiduTargets = $candidates | Sort-Object distance_m | Select-Object -First ([int]$baiduSettings.enrichTopN)

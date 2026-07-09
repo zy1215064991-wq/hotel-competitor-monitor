@@ -182,10 +182,10 @@ config/hotel-monitor.json
 - `query.roomType`：目标房型
 - `discovery.competitorCount`：最终监控并进入日报/历史的竞对数量
 - `discovery.radiusMeters`：高德周边搜索半径
-- `discovery.maxCandidates`：高德先拉取的候选池上限，后续会再按价格、排序和竞对数量收口
+- `discovery.maxCandidates`：高德先拉取的候选池上限，后续会再按价格、可比性评分、排序和竞对数量收口
 - `discovery.brandKeywords`：品牌补漏关键词
 - `discovery.maxPrice`：最高价格筛选，只过滤明确高于上限的候选；价格缺失或脱敏时保留给日报说明
-- `discovery.sort`：FlyAI 查询和最终候选排序方式，支持距离、低价、评分和默认排序
+- `discovery.sort`：最终候选排序方式，默认 `balanced` 可比性优先；也支持距离、低价、评分和默认排序。FlyAI 查询会自动映射到飞猪支持的排序值。
 - `baidu.enrichTopN`：百度口碑补充数量
 - `baidu.cacheEnabled`：是否启用百度口碑缓存
 - `baidu.cacheDirectory`：百度缓存目录，默认 `data/cache/baidu`

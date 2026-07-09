@@ -40,6 +40,7 @@ function runDryRun(config, name) {
     .at(-1);
   assert.ok(runDir, `${name} 应生成运行目录`);
   return {
+    files: fs.readdirSync(runDir),
     candidates: readJson(path.join(runDir, "candidates.json")),
     reportInput: readText(path.join(outputRoot, "api-combo-latest-report-input.md"))
   };
@@ -63,6 +64,37 @@ try {
     "rate_desc 应按评分优先选择最终竞对"
   );
   assert.match(ratingRun.reportInput, /- ReportedCandidateCount: 2/, "报告输入应记录实际输出竞对数量");
+
+  const balancedConfig = JSON.parse(JSON.stringify(baseConfig));
+  balancedConfig.discovery.competitorCount = 2;
+  balancedConfig.discovery.maxCandidates = 20;
+  balancedConfig.discovery.maxPrice = 600;
+  balancedConfig.discovery.sort = "balanced";
+  const balancedRun = runDryRun(balancedConfig, "balanced");
+
+  assert.deepEqual(
+    balancedRun.candidates.map((candidate) => candidate.hotel_name).sort(),
+    ["全季上海江桥万达广场酒店", "汉庭上海国家会展中心金运路酒店"].sort(),
+    "balanced 应优先选择标准酒店，不能让最近的替代住宿挤占核心竞品名额"
+  );
+  assert.ok(
+    balancedRun.candidates.every((candidate) => candidate.hotel_type === "标准酒店"),
+    "balanced 输出的核心名单应先保留标准酒店"
+  );
+  assert.ok(
+    balancedRun.candidates.every((candidate) => Number(candidate.selection_score) > 0),
+    "balanced 应给入围候选写入可解释的 selection_score"
+  );
+  assert.match(balancedRun.reportInput, /SelectionScore/, "报告输入应输出筛选分数列");
+  assert.match(balancedRun.reportInput, /SelectionReason/, "报告输入应输出筛选理由列");
+  assert.match(balancedRun.reportInput, /档位差\d+级/, "筛选理由应完整输出档位差级数");
+  assert.match(balancedRun.reportInput, /- Sort: balanced/, "报告输入应记录 balanced 筛选策略");
+  assert.ok(
+    balancedRun.files.includes("flyai-001-DRY_AMAP_1.txt") &&
+      balancedRun.files.includes("flyai-002-DRY_AMAP_2.txt") &&
+      balancedRun.files.includes("flyai-003-DRY_AMAP_3.txt"),
+    "FlyAI 原始输出文件名应包含序号和 AMAP id，避免中文名被统一写成 flyai-candidate.txt 后互相覆盖"
+  );
 
   const maxPriceConfig = JSON.parse(JSON.stringify(baseConfig));
   maxPriceConfig.discovery.competitorCount = 5;
