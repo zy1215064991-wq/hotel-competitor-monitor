@@ -64,6 +64,8 @@ try {
   assert.match(runReport, /NetworkCallsToAmapFlyAIBaidu: 0/, "run-once DryRun 应标记三源正式调用为 0");
   assert.match(runReport, /ReadyForDryRun: True/, "run-once 报告应带 readiness");
   assert.match(runReport, /Status: ok/, "run-once DryRun 应成功");
+  assert.match(runReport, /templates\/daily-prompt\.md/, "run-once 报告应正确提示 daily prompt 路径");
+  assert.doesNotMatch(runReport, /\templates\/daily-prompt\.md/, "run-once 报告不能把反引号 t 写成制表符");
   assert.ok(fs.existsSync(latestInput), "run-once DryRun 应生成最新报告输入");
   assert.match(readText(latestInput), /DryRun: True/, "run-once 生成的报告输入应来自 DryRun");
   assert.doesNotMatch(runReport, /sk-[A-Za-z0-9]{10,}/, "run-once 报告不能包含 sk 形态密钥");

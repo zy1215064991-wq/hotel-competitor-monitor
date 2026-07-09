@@ -86,7 +86,7 @@ function Write-RunReport {
     "",
     "## Next Step",
     "",
-    "Ask WorkBuddy to read `data/api-combo/api-combo-latest-report-input.md` and `templates/daily-prompt.md`, then generate the red/yellow/green daily report."
+    'Ask WorkBuddy to read data/api-combo/api-combo-latest-report-input.md and templates/daily-prompt.md, then generate the red/yellow/green daily report.'
   )
 
   [System.IO.File]::WriteAllLines($Path, $lines, [System.Text.Encoding]::UTF8)
