@@ -11,3 +11,4 @@ config/hotel-monitor.json
 node_modules/
 dist/
 work/
+.worktrees/
