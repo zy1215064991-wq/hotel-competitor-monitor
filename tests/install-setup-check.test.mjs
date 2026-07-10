@@ -15,6 +15,13 @@ const noBaiduReportPath = path.join(tempDir, "setup-check-no-baidu.md");
 const repairReportPath = path.join(tempDir, "setup-check-repair.md");
 const readText = (filePath) => fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
 const readJson = (filePath) => JSON.parse(readText(filePath));
+const configuredKeyEnv = {
+  ...process.env,
+  AMAP_API_KEY: "test-amap-key",
+  FLYAI_API_KEY: "test-flyai-key",
+  BAIDU_MAP_AK: "test-baidu-ak"
+};
+const noBaiduKeyEnv = { ...configuredKeyEnv, BAIDU_MAP_AK: "" };
 
 fs.copyFileSync(path.join(repoRoot, "config", "hotel-monitor.example.json"), configPath);
 const noBaiduConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -67,7 +74,7 @@ try {
       reportPath,
       "-SkipFlyAICommandCheck"
     ],
-    { cwd: repoRoot, stdio: "pipe", encoding: "utf8" }
+    { cwd: repoRoot, stdio: "pipe", encoding: "utf8", env: configuredKeyEnv }
   );
 
   const report = readText(reportPath);
@@ -101,7 +108,7 @@ try {
       noBaiduReportPath,
       "-SkipFlyAICommandCheck"
     ],
-    { cwd: repoRoot, stdio: "pipe", encoding: "utf8" }
+    { cwd: repoRoot, stdio: "pipe", encoding: "utf8", env: noBaiduKeyEnv }
   );
 
   const noBaiduReport = readText(noBaiduReportPath);
@@ -124,7 +131,7 @@ try {
       "-SkipFlyAICommandCheck",
       "-RepairConfigFromExample"
     ],
-    { cwd: repoRoot, stdio: "pipe", encoding: "utf8" }
+    { cwd: repoRoot, stdio: "pipe", encoding: "utf8", env: configuredKeyEnv }
   );
 
   const repairedConfig = readJson(oldConfigPath);
