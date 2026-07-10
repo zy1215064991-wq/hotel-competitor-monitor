@@ -40,18 +40,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Form
 10. 读取 templates/daily-prompt.md。
 11. 使用 WorkBuddy 内置模型生成红黄绿经营日报。
 12. 保存 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-13. 默认通过微信助理 ClawBot 推送日报全文。
-14. 如果 ClawBot 未绑定或 Automation 未启用 ClawBot 通知，不要伪造成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
+13. 读取 `config/hotel-monitor.json` 的 `pushMode`，只执行对应的一条推送路径：
 
-## 可选企业微信备用推送
-
-如果用户明确选择企业微信群机器人，并且环境变量 HOTEL_MONITOR_WECOM_WEBHOOK 存在，保存日报后运行：
+- `clawbot`：通过当前 WorkBuddy 已绑定的微信助理发送最终结果。首次试跑必须以微信端实际收到消息为成功依据；任务执行完成本身不能证明 ClawBot 推送成功。如果当前 Automation 界面只提供“推送到 WorkBuddy 小程序”，则启用小程序通知，并在最终回复标记 ClawBot 尚未验证。
+- `wecom`：确认环境变量 `HOTEL_MONITOR_WECOM_WEBHOOK` 存在后运行以下命令。webhook 缺失或脚本返回失败时，标记企业微信推送失败，不要伪造成功。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -ReportPath .\reports\YYYY-MM-DD-hotel-competitor-daily.md
 ```
 
-如果 webhook 缺失，不要伪造推送成功。
+- `none`：只保存本地，不调用 ClawBot 或企业微信，并在最终回复说明外部推送已按配置跳过。
 
 ## 最终回复
 

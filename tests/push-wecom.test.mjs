@@ -35,7 +35,12 @@ assert.match(setupDoc, /docs\/automation-setup\.md/, "推送文档应该链接 A
 assert.match(automationSetup, /最终回复|完整任务结果/, "Automation 文档应说明推送最终回复或完整任务结果");
 assert.match(automationSetup, /ClawBot 推送未配置/, "Automation 文档应说明未配置推送时不能伪造成功");
 
-assert.match(automationTemplate, /企业微信备用推送/, "自动化模板应该包含企业微信备用推送");
+assert.match(automationTemplate, /pushMode/, "自动化模板应该读取配置中的推送模式");
+assert.match(automationTemplate, /clawbot/, "自动化模板应该说明 ClawBot 分支");
+assert.match(automationTemplate, /wecom/, "自动化模板应该说明企业微信分支");
+assert.match(automationTemplate, /none/, "自动化模板应该说明只保存本地分支");
+assert.match(automationTemplate, /微信端实际收到/, "ClawBot 首次验证应以微信实收为准");
+assert.match(automationTemplate, /WorkBuddy 小程序/, "模板应该说明可验证的小程序通知回退路径");
 assert.match(automationTemplate, /run-once\.ps1/, "自动化模板应该通过安全入口采集");
 assert.match(automationTemplate, /push-wecom\.ps1/, "自动化模板应该调用企业微信推送脚本");
 assert.match(app, /推送方式/, "前端向导应该包含推送方式");

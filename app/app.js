@@ -38,6 +38,45 @@ function readBoolean(id, fallback) {
   return fallback;
 }
 
+function validateForm() {
+  const errors = [];
+  const requiredText = [
+    ["city", "城市"],
+    ["homeHotelName", "本店名称"],
+    ["poiName", "商圈/POI"],
+    ["roomType", "目标房型"]
+  ];
+  requiredText.forEach(([id, label]) => {
+    if (!readText(id)) errors.push(`${label}不能为空`);
+  });
+
+  const numberRules = [
+    ["offsetDays", "入住偏移天数", 0, 365],
+    ["nights", "入住晚数", 1, 30],
+    ["rooms", "房间数", 1, 20],
+    ["adults", "成人数", 1, 20],
+    ["children", "儿童数", 0, 10],
+    ["radiusMeters", "搜索半径", 500, 50000],
+    ["maxCandidates", "候选池上限", 1, 100],
+    ["competitorCount", "竞对数量", 1, 20],
+    ["flyaiRequestDelayMs", "FlyAI 请求间隔", 0, 60000],
+    ["flyaiMaxRetries", "FlyAI 失败重试", 0, 5],
+    ["baiduEnrichTopN", "百度补充数量", 0, 30],
+    ["baiduDailyCallLimit", "百度每日调用上限", 0, 10000],
+    ["baiduCacheTtlDays", "百度缓存天数", 0, 3650]
+  ];
+  numberRules.forEach(([id, label, min, max]) => {
+    const value = Number($(`#${id}`).value);
+    if (!Number.isFinite(value) || value < min || value > max) {
+      errors.push(`${label}必须在 ${min}-${max} 之间`);
+    }
+  });
+  if (readNumber("competitorCount", 5) > readNumber("maxCandidates", 20)) {
+    errors.push("竞对数量不能大于候选池上限");
+  }
+  return errors;
+}
+
 function buildConfigJson() {
   return JSON.stringify({
     city: readText("city", "上海"),
@@ -71,6 +110,7 @@ function buildConfigJson() {
       cacheEnabled: readBoolean("baiduCacheEnabled", true),
       cacheDirectory: readText("baiduCacheDirectory", "data/cache/baidu"),
       cacheTtlDays: readNumber("baiduCacheTtlDays", 30),
+      usageDirectory: "data/usage",
       dailyCallLimit: readNumber("baiduDailyCallLimit", 20)
     },
     flyai: {
@@ -93,7 +133,37 @@ function buildConfigJson() {
   }, null, 2);
 }
 
+function buildPushInstructions(pushMode) {
+  if (pushMode === "clawbot") {
+    return [
+      "13. 推送模式为微信助理 ClawBot。先保存日报，再通过当前 WorkBuddy 已绑定的微信助理发送最终结果。",
+      "14. 首次试跑必须以微信端实际收到消息为成功依据；任务执行完成本身不能证明 ClawBot 推送成功。",
+      "15. 如果当前 Automation 界面只提供推送到 WorkBuddy 小程序，则启用小程序推送，并在最终回复标记 ClawBot 尚未验证。"
+    ].join("\n");
+  }
+  if (pushMode === "wecom") {
+    return [
+      "13. 推送模式为企业微信群机器人。确认 HOTEL_MONITOR_WECOM_WEBHOOK 存在后运行：",
+      "",
+      "```powershell",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\push-wecom.ps1 -ReportPath .\\reports\\YYYY-MM-DD-hotel-competitor-daily.md",
+      "```",
+      "",
+      "14. webhook 缺失或脚本返回失败时，标记企业微信推送失败，不要伪造成功。"
+    ].join("\n");
+  }
+  if (pushMode === "none") {
+    return [
+      "13. 推送模式为只保存本地。不要调用 ClawBot 或企业微信。",
+      "14. 最终回复明确写明日报已保存本地、外部推送已按配置跳过。"
+    ].join("\n");
+  }
+  throw new Error(`不支持的推送方式：${pushMode}`);
+}
+
 function buildAutomationPrompt() {
+  const pushMode = readText("pushMode", "clawbot");
+  const pushInstructions = buildPushInstructions(pushMode);
   return `# 酒店竞对每日监控 Automation Prompt
 
 请用 WorkBuddy 内置模型执行本任务，不调用第三方大模型接口。酒店竞对数据通过三源 API 组合获取：高德负责地图和候选池，FlyAI/飞猪负责价格，百度负责口碑补充。
@@ -136,18 +206,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-once.ps1 -Fo
 10. 读取 templates/daily-prompt.md。
 11. 使用 WorkBuddy 内置模型生成红黄绿经营日报。
 12. 保存 reports/YYYY-MM-DD-hotel-competitor-daily.md。
-13. 默认通过微信助理 ClawBot 推送日报全文。
-14. 如果 ClawBot 未绑定或 Automation 未启用 ClawBot 通知，不要伪造成功；最终回复写“ClawBot 推送未配置”，并贴出完整日报全文。
-
-## 可选企业微信备用推送
-
-如果用户明确选择企业微信群机器人，并且环境变量 HOTEL_MONITOR_WECOM_WEBHOOK 存在，保存日报后运行：
-
-\`\`\`powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\push-wecom.ps1 -ReportPath .\\reports\\YYYY-MM-DD-hotel-competitor-daily.md
-\`\`\`
-
-如果 webhook 缺失，不要伪造推送成功。
+${pushInstructions}
 
 ## 最终回复
 
@@ -238,15 +297,31 @@ function buildDailyPrompt() {
 }
 
 function buildRunPrompt() {
-  return "请阅读 workbuddy-start-here.md，并按 API 组合流程跑一次酒店竞对每日监控。如缺少 Key，先引导我打开 app/flyai-guide.html、app/amap-guide.html、app/baidu-guide.html。先运行 scripts/run-once.ps1 做安全 DryRun，再读取 data/api-combo/api-combo-latest-report-input.md，按 templates/daily-prompt.md 生成日报并用微信助理 ClawBot 推送。";
+  const pushMode = readText("pushMode", "clawbot");
+  const pushText = pushMode === "clawbot"
+    ? "按配置尝试微信助理 ClawBot，并以微信实际收到为成功依据。"
+    : pushMode === "wecom"
+      ? "按配置使用企业微信群机器人推送。"
+      : "只保存本地，不执行外部推送。";
+  return `请阅读 workbuddy-start-here.md，并按 API 组合流程跑一次酒店竞对每日监控。如缺少 Key，先引导我打开 app/flyai-guide.html、app/amap-guide.html、app/baidu-guide.html。先运行 scripts/run-once.ps1 做安全 DryRun，再按正式流程采集；读取 data/api-combo/api-combo-latest-report-input.md，按 templates/daily-prompt.md 生成日报。${pushText}`;
 }
 
-function generateFiles() {
+function refreshGenerated({ notify = false } = {}) {
+  const errors = validateForm();
+  if (errors.length > 0) {
+    if (notify) toast(errors[0]);
+    return false;
+  }
   state.generated.config = buildConfigJson();
   state.generated.automation = buildAutomationPrompt();
   state.generated.daily = buildDailyPrompt();
   updatePreview();
-  toast("预览已生成");
+  if (notify) toast("预览已生成");
+  return true;
+}
+
+function generateFiles() {
+  refreshGenerated({ notify: true });
 }
 
 function updatePreview() {
@@ -256,10 +331,23 @@ function updatePreview() {
 function bindActions() {
   $("#generateFiles").addEventListener("click", generateFiles);
   $("#baiduQuotaSafeMode").addEventListener("click", enableBaiduQuotaSafeMode);
-  $("#downloadConfig").addEventListener("click", () => download("hotel-monitor.json", state.generated.config || buildConfigJson(), "application/json"));
-  $("#downloadAutomation").addEventListener("click", () => download("automation-prompt.md", state.generated.automation || buildAutomationPrompt()));
-  $("#downloadDaily").addEventListener("click", () => download("daily-prompt.md", state.generated.daily || buildDailyPrompt()));
+  $("#downloadConfig").addEventListener("click", () => {
+    if (!refreshGenerated({ notify: true })) return;
+    download("hotel-monitor.json", buildConfigJson(), "application/json");
+  });
+  $("#downloadAutomation").addEventListener("click", () => {
+    if (!refreshGenerated({ notify: true })) return;
+    download("automation-prompt.md", buildAutomationPrompt());
+  });
+  $("#downloadDaily").addEventListener("click", () => {
+    if (!refreshGenerated({ notify: true })) return;
+    download("daily-prompt.md", buildDailyPrompt());
+  });
   $("#copyRunPrompt").addEventListener("click", () => copyText(buildRunPrompt(), "已复制运行提示词"));
+  $$(".form-grid input, .form-grid select").forEach((control) => {
+    control.addEventListener("input", () => refreshGenerated());
+    control.addEventListener("change", () => refreshGenerated());
+  });
   $$("[data-preview]").forEach((button) => {
     button.addEventListener("click", () => {
       state.activePreview = button.dataset.preview;
@@ -274,7 +362,7 @@ function enableBaiduQuotaSafeMode() {
   $("#baiduEnrichTopN").value = "0";
   $("#baiduDailyCallLimit").value = "0";
   $("#baiduCacheEnabled").value = "true";
-  generateFiles();
+  refreshGenerated();
   toast("已启用百度省额度模式：正式运行不会调用百度");
 }
 
