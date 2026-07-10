@@ -54,6 +54,12 @@ try {
   assert.match(reportInput, /- Adults: 2/, "报告输入应写入成人数");
   assert.match(reportInput, /- Children: 1/, "报告输入应写入儿童数");
   assert.match(reportInput, /- RoomType: 双床房/, "报告输入应写入房型");
+  assert.match(reportInput, /## Applied Query Scope/, "报告输入应区分实际应用的查询口径");
+  assert.match(reportInput, /- FlyAIBedType: twin/, "双床房应实际映射到 FlyAI twin");
+  assert.match(reportInput, /- RoomTypeStatus: applied-by-flyai-cli/, "已识别床型应标记为已应用");
+  assert.match(reportInput, /- Rooms: not-applied-by-flyai-cli/, "房间数不应伪装成 FlyAI 已应用条件");
+  assert.match(reportInput, /- Adults: not-applied-by-flyai-cli/, "成人数不应伪装成 FlyAI 已应用条件");
+  assert.match(reportInput, /- Children: not-applied-by-flyai-cli/, "儿童数不应伪装成 FlyAI 已应用条件");
   assert.match(reportInput, /- CompetitorCount: 7/, "报告输入应写入竞对数量");
   assert.match(reportInput, /- MaxCandidates: 9/, "报告输入应写入候选池上限");
   assert.match(reportInput, /- MaxPrice: 450/, "报告输入应写入价格筛选");

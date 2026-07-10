@@ -56,11 +56,16 @@ try {
   assert.match(reportInput, /ExternalCallsUsed: 0/, "DryRun 不应消耗 FlyAI 真实调用");
   assert.match(reportInput, /DryRunNote: DryRun does not call FlyAI/, "报告应说明 DryRun 不调用 FlyAI");
   assert.match(reportInput, /PriceStatus/, "候选表应展示 FlyAI 价格状态");
+  assert.match(reportInput, /IdentityStatus/, "候选表应展示 FlyAI 酒店身份匹配状态");
+  assert.match(reportInput, /MatchedFlyAIName/, "候选表应展示实际匹配到的 FlyAI 酒店名");
 
   const firstCandidate = candidates[0];
   assert.equal(firstCandidate.fliggy_source, "dryrun", "DryRun 候选应标记价格来源");
   assert.equal(firstCandidate.fliggy_status, "ok", "DryRun 候选应标记价格状态");
   assert.equal(firstCandidate.fliggy_price_quality, "exact", "DryRun 价格应标记为精确价");
+  assert.equal(firstCandidate.fliggy_identity_status, "matched", "DryRun 候选应通过酒店名匹配");
+  assert.equal(firstCandidate.fliggy_matched_name, firstCandidate.hotel_name, "匹配名应与候选酒店一致");
+  assert.equal(firstCandidate.fliggy_bed_type, "king", "默认大床房应映射为 king");
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }

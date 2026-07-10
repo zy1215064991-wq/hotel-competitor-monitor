@@ -11,6 +11,7 @@ $OutputEncoding = [Console]::OutputEncoding
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $resolvedConfigPath = if ([System.IO.Path]::IsPathRooted($ConfigPath)) { $ConfigPath } else { Join-Path $repoRoot $ConfigPath }
 $resolvedOutputRoot = if ([System.IO.Path]::IsPathRooted($OutputRoot)) { $OutputRoot } else { Join-Path $repoRoot $OutputRoot }
+Import-Module (Join-Path $PSScriptRoot "HotelMonitor.Core.psm1") -Force -DisableNameChecking
 
 function Get-EnvValue {
   param([string]$Name)
@@ -72,7 +73,19 @@ function Get-AmapHome {
   if ($result.status -ne "1" -or -not $result.pois -or @($result.pois).Count -eq 0) {
     throw "Amap home search returned no POI."
   }
-  return @($result.pois)[0]
+  $pois = @($result.pois)
+  $expectedNormalized = Normalize-HotelMonitorName -Name ([string]$Config.homeHotelName)
+  foreach ($poi in $pois) {
+    if ((Normalize-HotelMonitorName -Name ([string]$poi.name)) -eq $expectedNormalized) {
+      return $poi
+    }
+  }
+  foreach ($poi in $pois) {
+    if (Test-HotelMonitorNameCompatible -ExpectedName ([string]$Config.homeHotelName) -ActualName ([string]$poi.name)) {
+      return $poi
+    }
+  }
+  throw "Amap home search returned POIs, but none matched the configured home hotel name."
 }
 
 function Get-AmapNearby {
@@ -125,6 +138,9 @@ function Convert-AmapCandidate {
     fliggy_source = ""
     fliggy_status = ""
     fliggy_price_quality = ""
+    fliggy_matched_name = ""
+    fliggy_identity_status = ""
+    fliggy_bed_type = ""
     baidu_uid = ""
     baidu_rating = ""
     baidu_comment_num = ""
@@ -221,6 +237,7 @@ function New-FlyAIStats {
     EmptyResults = 0
     Failed = 0
     MaskedPrices = 0
+    IdentityMismatches = 0
     SkippedDisabled = 0
     DryRunResponses = 0
   }
@@ -228,7 +245,7 @@ function New-FlyAIStats {
 
 function Test-MaskedPrice {
   param([string]$Price)
-  return ($Price -match 'x|X')
+  return Test-HotelMonitorMaskedPrice -Price $Price
 }
 
 function Get-FlyAIResultStatus {
@@ -251,6 +268,7 @@ function Invoke-FlyAIPrice {
     [pscustomobject]$Config,
     [System.Collections.IDictionary]$Dates,
     [string]$Keyword,
+    [string]$BedType,
     [string]$OutputPath,
     [System.Collections.IDictionary]$Settings,
     [System.Collections.IDictionary]$Stats
@@ -262,6 +280,9 @@ function Invoke-FlyAIPrice {
   $Stats.RequestsAttempted = [int]$Stats.RequestsAttempted + 1
   $flyaiSort = Get-FlyAISort -Config $Config
   $args = @("search-hotel", "--dest-name", [string]$Config.city, "--check-in-date", [string]$Dates.CheckIn, "--check-out-date", [string]$Dates.CheckOut, "--key-words", $Keyword, "--sort", $flyaiSort)
+  if (-not [string]::IsNullOrWhiteSpace($BedType)) {
+    $args += @("--hotel-bed-types", $BedType)
+  }
   if ($DryRun) {
     $dry = '{"data":{"itemList":[{"name":"' + ($Keyword -replace '"','') + '","price":"¥399","detailUrl":"https://a.feizhu.com/dry","star":"舒适型"}]},"message":"success","status":0}'
     [System.IO.File]::WriteAllText($OutputPath, $dry, [System.Text.Encoding]::UTF8)
@@ -299,7 +320,13 @@ function Invoke-FlyAIPrice {
 }
 
 function Merge-FlyAIPrice {
-  param([System.Collections.IDictionary]$Candidate, [object]$FlyResult, [System.Collections.IDictionary]$Stats)
+  param(
+    [System.Collections.IDictionary]$Candidate,
+    [object]$FlyResult,
+    [string]$BedType,
+    [System.Collections.IDictionary]$Stats
+  )
+  $Candidate.fliggy_bed_type = $BedType
   $status = Get-FlyAIResultStatus -Result $FlyResult
   $Candidate.fliggy_status = $status
   $Candidate.fliggy_source = if ($DryRun) { "dryrun" } else { "api" }
@@ -307,14 +334,22 @@ function Merge-FlyAIPrice {
     $Candidate.fliggy_source = if ($FlyResult -eq $null) { "failed" } else { $Candidate.fliggy_source }
     return
   }
-  $first = @($FlyResult.data.itemList)[0]
-  $Candidate.fliggy_price = [string]$first.price
-  $Candidate.fliggy_detail_url = [string]$first.detailUrl
+  $matched = Select-HotelMonitorFlyAIItem -Result $FlyResult -ExpectedName ([string]$Candidate.hotel_name)
+  if ($null -eq $matched) {
+    $Candidate.fliggy_status = "identity-mismatch"
+    $Candidate.fliggy_identity_status = "identity-mismatch"
+    $Stats.IdentityMismatches = [int]$Stats.IdentityMismatches + 1
+    return
+  }
+  $Candidate.fliggy_matched_name = [string]$matched.name
+  $Candidate.fliggy_identity_status = "matched"
+  $Candidate.fliggy_price = [string]$matched.price
+  $Candidate.fliggy_detail_url = [string]$matched.detailUrl
   $Candidate.fliggy_price_quality = if (Test-MaskedPrice -Price $Candidate.fliggy_price) { "masked" } else { "exact" }
   if ($Candidate.fliggy_price_quality -eq "masked") {
     $Stats.MaskedPrices = [int]$Stats.MaskedPrices + 1
   }
-  if (-not $Candidate.amap_level -and $first.star) { $Candidate.amap_level = [string]$first.star }
+  if (-not $Candidate.amap_level -and $matched.star) { $Candidate.amap_level = [string]$matched.star }
 }
 
 function Invoke-BaiduSearch {
@@ -444,12 +479,7 @@ function Add-BaiduApiCall {
 
 function Normalize-HotelName {
   param([string]$Name)
-  $text = $Name.ToLowerInvariant()
-  $text = $text -replace "（.*?）", ""
-  $text = $text -replace "\(.*?\)", ""
-  $text = $text -replace "上海|酒店|宾馆|公寓|民宿|连锁|式|店|广场|机场|国家会展中心|国展中心", ""
-  $text = $text -replace "[^\p{IsCJKUnifiedIdeographs}a-z0-9]", ""
-  return $text
+  return Normalize-HotelMonitorName -Name $Name
 }
 
 function Test-NameCompatible {
@@ -574,9 +604,7 @@ function Invoke-BaiduEnrichment {
 
 function Get-PriceNumber {
   param([string]$Price)
-  $digits = [regex]::Match($Price, '\d+').Value
-  if ($digits) { return [int]$digits }
-  return 0
+  return Get-HotelMonitorPriceNumber -Price $Price
 }
 
 function Get-RuleNumber {
@@ -771,8 +799,9 @@ function Compare-HistorySnapshots {
   $missingPrice = 0
   foreach ($hotel in @($CurrentSnapshot.hotels)) {
     $previousHotel = $previousByKey[[string]$hotel.key]
-    $previousPrice = if ($previousHotel) { [int]$previousHotel.fliggy_price_num } else { 0 }
-    $comparison = Compare-Price -TodayPrice ([int]$hotel.fliggy_price_num) -PreviousPrice $previousPrice
+    $previousPriceText = if ($previousHotel) { [string]$previousHotel.fliggy_price } else { "" }
+    $previousQuality = if ($previousHotel) { [string]$previousHotel.fliggy_price_quality } else { "" }
+    $comparison = Compare-HotelMonitorPrice -TodayPrice ([string]$hotel.fliggy_price) -TodayQuality ([string]$hotel.fliggy_price_quality) -PreviousPrice $previousPriceText -PreviousQuality $previousQuality
     if ($comparison.Trend -eq "涨价") { $up++ }
     if ($comparison.Trend -eq "降价") { $down++ }
     if ($comparison.Trend -eq "持平") { $same++ }
@@ -1054,6 +1083,8 @@ function Write-ReportInput {
   $maxCandidatesText = if ($Config.discovery.maxCandidates) { [string]$Config.discovery.maxCandidates } else { "20" }
   $maxPriceText = if ($Config.discovery.maxPrice) { [string]$Config.discovery.maxPrice } else { "" }
   $sortText = if ($Config.discovery.sort) { [string]$Config.discovery.sort } else { "balanced" }
+  $flyaiBedTypeText = Get-HotelMonitorBedType -RoomType $roomTypeText
+  $roomTypeStatus = if ([string]::IsNullOrWhiteSpace($flyaiBedTypeText)) { "unsupported-by-flyai-cli" } else { "applied-by-flyai-cli" }
   $tierRules = Get-TierRules -Config $Config
   $candidateJson = if ($candidateList.Count -eq 0) { "[]" } else { $candidateList | ConvertTo-Json -Depth 20 }
   [System.IO.File]::WriteAllText($jsonPath, $candidateJson, [System.Text.Encoding]::UTF8)
@@ -1084,6 +1115,16 @@ function Write-ReportInput {
     "- Sort: $sortText",
     "- ReportedCandidateCount: $($candidateList.Count)",
     "",
+    "## Applied Query Scope",
+    "",
+    "- Dates: applied-by-flyai-cli",
+    "- RequestedRoomType: $roomTypeText",
+    "- FlyAIBedType: $flyaiBedTypeText",
+    "- RoomTypeStatus: $roomTypeStatus",
+    "- Rooms: not-applied-by-flyai-cli",
+    "- Adults: not-applied-by-flyai-cli",
+    "- Children: not-applied-by-flyai-cli",
+    "",
     "## History",
     "",
     "- HistoryEnabled: True",
@@ -1111,6 +1152,7 @@ function Write-ReportInput {
     "- EmptyResults: $($FlyAIStats.EmptyResults)",
     "- Failed: $($FlyAIStats.Failed)",
     "- MaskedPrices: $($FlyAIStats.MaskedPrices)",
+    "- IdentityMismatches: $($FlyAIStats.IdentityMismatches)",
     "- SkippedDisabled: $($FlyAIStats.SkippedDisabled)",
     "- DryRunResponses: $($FlyAIStats.DryRunResponses)",
     "- DryRunNote: DryRun does not call FlyAI.",
@@ -1145,14 +1187,16 @@ function Write-ReportInput {
     "| 高德评分 | $($HomeHotel.amap_rating) |",
     "| 档位 | $($HomeHotel.amap_level) |",
     "| 飞猪价 | $($HomeHotel.fliggy_price) |",
+    "| FlyAI匹配名 | $($HomeHotel.fliggy_matched_name) |",
+    "| 身份状态 | $($HomeHotel.fliggy_identity_status) |",
     "",
     "## Candidates",
     "",
-    "| 分层 | 酒店名 | 距离m | 飞猪价 | PriceStatus | PriceQuality | 高德评分 | 百度评分 | 评论数 | 百度来源 | 类型 | SelectionBucket | SelectionScore | SelectionReason | 理由 |",
-    "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |"
+    "| 分层 | 酒店名 | 距离m | 飞猪价 | PriceStatus | PriceQuality | IdentityStatus | MatchedFlyAIName | BedType | 高德评分 | 百度评分 | 评论数 | 百度来源 | 类型 | SelectionBucket | SelectionScore | SelectionReason | 理由 |",
+    "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |"
   )
   foreach ($candidate in $candidateList) {
-    $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.fliggy_status) | $($candidate.fliggy_price_quality) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.baidu_source) | $($candidate.hotel_type) | $($candidate.selection_bucket) | $($candidate.selection_score) | $($candidate.selection_reason) | $($candidate.reason) |"
+    $lines += "| $($candidate.comp_tier) | $($candidate.hotel_name) | $($candidate.distance_m) | $($candidate.fliggy_price) | $($candidate.fliggy_status) | $($candidate.fliggy_price_quality) | $($candidate.fliggy_identity_status) | $($candidate.fliggy_matched_name) | $($candidate.fliggy_bed_type) | $($candidate.amap_rating) | $($candidate.baidu_rating) | $($candidate.baidu_comment_num) | $($candidate.baidu_source) | $($candidate.hotel_type) | $($candidate.selection_bucket) | $($candidate.selection_score) | $($candidate.selection_reason) | $($candidate.reason) |"
   }
   $lines += ""
   $lines += "## Yesterday Comparison"
@@ -1183,6 +1227,7 @@ New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 $amapKey = Get-EnvValue -Name "AMAP_API_KEY"
 $flyaiKey = Get-EnvValue -Name "FLYAI_API_KEY"
 $baiduAk = Get-EnvValue -Name "BAIDU_MAP_AK"
+$flyaiBedType = Get-HotelMonitorBedType -RoomType ([string]$config.query.roomType)
 $flyaiSettings = Get-FlyAISettings -Config $config
 $baiduSettings = Get-BaiduSettings -Config $config
 if (-not $DryRun) {
@@ -1195,8 +1240,8 @@ if (-not $DryRun) {
 $homePoi = Get-AmapHome -Config $config -ApiKey $amapKey -OutputDir $outputDir
 $homeCandidate = Convert-AmapCandidate -Poi $homePoi
 $flyaiStats = New-FlyAIStats -Settings $flyaiSettings
-$homeFly = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword ([string]$config.homeHotelName) -OutputPath (Join-Path $outputDir "flyai-home.txt") -Settings $flyaiSettings -Stats $flyaiStats
-Merge-FlyAIPrice -Candidate $homeCandidate -FlyResult $homeFly -Stats $flyaiStats
+$homeFly = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword ([string]$config.homeHotelName) -BedType $flyaiBedType -OutputPath (Join-Path $outputDir "flyai-home.txt") -Settings $flyaiSettings -Stats $flyaiStats
+Merge-FlyAIPrice -Candidate $homeCandidate -FlyResult $homeFly -BedType $flyaiBedType -Stats $flyaiStats
 
 $excludeKeywords = @($config.discovery.excludeNameKeywords)
 $nearbyPois = Get-AmapNearby -Config $config -ApiKey $amapKey -HomePoi $homePoi -OutputDir $outputDir
@@ -1218,8 +1263,8 @@ $candidateIndex = 0
 foreach ($candidate in $candidates) {
   $candidateIndex += 1
   $safeName = Get-CandidateOutputName -Candidate $candidate -Index $candidateIndex
-  $flyResult = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword $candidate.hotel_name -OutputPath (Join-Path $outputDir "flyai-$safeName.txt") -Settings $flyaiSettings -Stats $flyaiStats
-  Merge-FlyAIPrice -Candidate $candidate -FlyResult $flyResult -Stats $flyaiStats
+  $flyResult = Invoke-FlyAIPrice -Config $config -Dates $dates -Keyword $candidate.hotel_name -BedType $flyaiBedType -OutputPath (Join-Path $outputDir "flyai-$safeName.txt") -Settings $flyaiSettings -Stats $flyaiStats
+  Merge-FlyAIPrice -Candidate $candidate -FlyResult $flyResult -BedType $flyaiBedType -Stats $flyaiStats
 }
 
 $candidates = Select-FinalCandidates -Config $config -Candidates $candidates -HomeHotel $homeCandidate
