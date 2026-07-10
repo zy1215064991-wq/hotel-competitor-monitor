@@ -71,7 +71,7 @@ function Get-ReportValue {
 }
 
 function Get-VerifyReadiness {
-  $failed = @($script:results | Where-Object { $_.Status -ne "ok" } | ForEach-Object { "$($_.Step)=$($_.Status)" })
+  $failed = @($script:results | Where-Object { $_.Status -eq "failed" } | ForEach-Object { "$($_.Step)=$($_.Status)" })
   $setupReport = Join-Path $repoRoot "data\setup-check-latest.md"
   $setupDryRun = Get-ReportValue -Path $setupReport -Name "ReadyForDryRun"
   $setupFormal = Get-ReportValue -Path $setupReport -Name "ReadyForFormalRun"
@@ -133,17 +133,27 @@ try {
 
   Invoke-VerifyStep -Name "zero-quota setup check" -Action {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "install.ps1") -ConfigPath $ConfigPath -SkipFlyAICommandCheck -StatusReportPath ".\data\setup-check-latest.md" | Out-Host
+    $setupExitCode = $LASTEXITCODE
+    if ($setupExitCode -ne 0) {
+      throw "install.ps1 failed with exit code $setupExitCode."
+    }
   }
 
   Invoke-VerifyStep -Name "api combo dryrun" -Action {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\run-api-mvp.ps1") -ConfigPath $ConfigPath -DryRun | Out-Host
+    $dryRunExitCode = $LASTEXITCODE
+    if ($dryRunExitCode -ne 0) {
+      throw "run-api-mvp.ps1 -DryRun failed with exit code $dryRunExitCode."
+    }
   }
 
-  Invoke-VerifyStep -Name "node tests" -Action {
-    if ($SkipNodeTests) {
-      Write-Host "[skip] Node tests skipped by -SkipNodeTests."
-      return
-    }
+  if ($SkipNodeTests) {
+    Write-Host ""
+    Write-Host "==> node tests"
+    Write-Host "[skip] Node tests skipped by -SkipNodeTests."
+    Add-Result -Step "node tests" -Status "skipped" -Detail "Skipped by -SkipNodeTests."
+  } else {
+    Invoke-VerifyStep -Name "node tests" -Action {
     if (-not (Get-Command "node" -ErrorAction SilentlyContinue)) {
       throw "Node.js was not found. Install Node.js or rerun with -SkipNodeTests."
     }
@@ -154,13 +164,16 @@ try {
         throw "Node test failed: $($_.Name)"
       }
     }
+    }
   }
 
-  Invoke-VerifyStep -Name "secret scan" -Action {
-    if ($SkipSecretScan) {
-      Write-Host "[skip] Secret scan skipped by -SkipSecretScan."
-      return
-    }
+  if ($SkipSecretScan) {
+    Write-Host ""
+    Write-Host "==> secret scan"
+    Write-Host "[skip] Secret scan skipped by -SkipSecretScan."
+    Add-Result -Step "secret scan" -Status "skipped" -Detail "Skipped by -SkipSecretScan."
+  } else {
+    Invoke-VerifyStep -Name "secret scan" -Action {
     $pattern = "sk-[A-Za-z0-9]{10,}"
     $excludeDirs = @(".git", "data", "reports", "ctrip-profile", "output", "node_modules", "dist", "work")
     if (Get-Command "rg" -ErrorAction SilentlyContinue) {
@@ -197,6 +210,7 @@ try {
       throw "Potential secret matched by Select-String."
     }
     Write-Host "[ok] No sk-style secret found by Select-String."
+    }
   }
 } finally {
   Pop-Location

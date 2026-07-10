@@ -36,7 +36,7 @@ function Get-ReportValue {
     return $Default
   }
 
-  $pattern = "^- $([regex]::Escape($Name)): (.+)$"
+  $pattern = "^(?:- )?$([regex]::Escape($Name)): (.+)$"
   foreach ($line in Get-Content -LiteralPath $Path -Encoding UTF8) {
     $match = [regex]::Match($line, $pattern)
     if ($match.Success) {
@@ -52,7 +52,8 @@ function Write-RunReport {
     [string]$Path,
     [string]$Status,
     [string]$Detail,
-    [string]$LatestReportInput
+    [string]$LatestReportInput,
+    [string]$RunId = ""
   )
 
   $directory = Split-Path -Parent $Path
@@ -77,6 +78,7 @@ function Write-RunReport {
     "- NetworkCallsToAmapFlyAIBaidu: $networkCalls",
     "- Status: $Status",
     "- Detail: $Detail",
+    "- RunId: $RunId",
     "- ReadyForDryRun: $readyForDryRun",
     "- ReadyForFormalRun: $readyForFormalRun",
     "- BlockingIssues: $blockingIssues",
@@ -112,6 +114,10 @@ try {
       $setupArgs += "-SkipFlyAICommandCheck"
     }
     & powershell @setupArgs | Out-Host
+    $setupExitCode = $LASTEXITCODE
+    if ($setupExitCode -ne 0) {
+      throw "Setup readiness check failed with exit code $setupExitCode."
+    }
   }
 
   $requiredReadiness = if ($Formal) { "ReadyForFormalRun" } else { "ReadyForDryRun" }
@@ -125,6 +131,12 @@ try {
   }
 
   Write-Host "==> API combo $mode"
+  $latestReportInput = if ([System.IO.Path]::IsPathRooted($OutputRoot)) {
+    Join-Path $OutputRoot "api-combo-latest-report-input.md"
+  } else {
+    Join-Path (Join-Path $repoRoot $OutputRoot) "api-combo-latest-report-input.md"
+  }
+  $collectionStartedAtUtc = (Get-Date).ToUniversalTime()
   $runArgs = @(
     "-NoProfile",
     "-ExecutionPolicy",
@@ -140,13 +152,29 @@ try {
     $runArgs += "-DryRun"
   }
   & powershell @runArgs | Out-Host
-
-  $latestReportInput = if ([System.IO.Path]::IsPathRooted($OutputRoot)) {
-    Join-Path $OutputRoot "api-combo-latest-report-input.md"
-  } else {
-    Join-Path (Join-Path $repoRoot $OutputRoot) "api-combo-latest-report-input.md"
+  $collectorExitCode = $LASTEXITCODE
+  if ($collectorExitCode -ne 0) {
+    throw "API combo collector failed with exit code $collectorExitCode."
   }
-  Write-RunReport -Path $targetRunReport -Status "ok" -Detail "$mode completed." -LatestReportInput $latestReportInput
+
+  if (-not (Test-Path -LiteralPath $latestReportInput)) {
+    throw "Collector completed without creating latest report input: $latestReportInput"
+  }
+  $latestItem = Get-Item -LiteralPath $latestReportInput
+  if ($latestItem.LastWriteTimeUtc -lt $collectionStartedAtUtc.AddSeconds(-2)) {
+    throw "Latest report input is stale: $latestReportInput"
+  }
+  $runId = Get-ReportValue -Path $latestReportInput -Name "RunId" -Default ""
+  if ([string]::IsNullOrWhiteSpace($runId)) {
+    throw "Latest report input is missing RunId: $latestReportInput"
+  }
+  $expectedDryRun = if ($Formal) { "False" } else { "True" }
+  $actualDryRun = Get-ReportValue -Path $latestReportInput -Name "DryRun" -Default "unknown"
+  if ($actualDryRun -ne $expectedDryRun) {
+    throw "Latest report input mode mismatch. Expected DryRun=$expectedDryRun, got $actualDryRun."
+  }
+
+  Write-RunReport -Path $targetRunReport -Status "ok" -Detail "$mode completed." -LatestReportInput $latestReportInput -RunId $runId
   $runReportWritten = $true
   Write-Host "Run-once report: $targetRunReport"
   if (-not $Formal) {

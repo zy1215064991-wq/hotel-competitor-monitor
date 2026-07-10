@@ -1029,6 +1029,7 @@ function Select-FinalCandidates {
 function Write-ReportInput {
   param(
     [pscustomobject]$Config,
+    [string]$RunId,
     [System.Collections.IDictionary]$Dates,
     [System.Collections.IDictionary]$HomeHotel,
     [array]$Candidates,
@@ -1060,6 +1061,7 @@ function Write-ReportInput {
     "# API Combo Hotel Competitor Report Input",
     "",
     "GeneratedAt: $(Get-Date -Format s)",
+    "- RunId: $RunId",
     "DryRun: $DryRun",
     "",
     "## Query",
@@ -1246,7 +1248,7 @@ if ([string]::IsNullOrWhiteSpace($historySnapshotPath)) {
 [System.IO.File]::WriteAllText((Join-Path $outputDir "history-snapshot.json"), ($historySnapshot | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
 [System.IO.File]::WriteAllText((Join-Path $outputDir "history-comparison.json"), ($historyComparison | ConvertTo-Json -Depth 20), [System.Text.Encoding]::UTF8)
 
-$reportInput = Write-ReportInput -Config $config -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates -FlyAIStats $flyaiStats -BaiduStats $baiduStats -HistoryComparison $historyComparison -HistorySnapshotPath $historySnapshotPath -OutputDir $outputDir
+$reportInput = Write-ReportInput -Config $config -RunId $runId -Dates $dates -HomeHotel $homeCandidate -Candidates $candidates -FlyAIStats $flyaiStats -BaiduStats $baiduStats -HistoryComparison $historyComparison -HistorySnapshotPath $historySnapshotPath -OutputDir $outputDir
 
 Write-Host "API combo MVP input generated."
 Write-Host "Output directory: $outputDir"
