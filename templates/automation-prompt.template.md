@@ -33,8 +33,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Form
 3. 如果 `scripts/run-once.ps1 -Formal` 停止，读取 `data/run-once-latest.md` 和 `data/setup-check-latest.md`，最终回复说明 `BlockingIssues`，不要继续生成日报，不要伪造数据或推送成功。
 4. 读取 data/run-once-latest.md，确认 `FormalCollection: true` 且 `Status: ok`。
 5. 读取 data/api-combo/api-combo-latest-report-input.md。
-6. 检查其中的 FlyAI Usage 章节：说明价格源成功、空结果、失败、脱敏价格和 DryRun 状态。
-7. 检查其中的 Baidu Usage 章节：说明百度缓存命中、真实 API 调用次数、每日上限和被限额跳过数量；如果百度关闭、补充数量为 0 或每日上限为 0，明确写“百度省额度模式，本次不调用百度”。
+6. 检查其中的 Applied Query Scope 和 FlyAI Usage：区分用户配置与实际传给价格源的日期、床型、房间数和住客数；说明成功、空结果、失败、身份错配、脱敏价格和 DryRun 状态。
+7. 检查其中的 Baidu Usage：说明百度缓存命中、本次真实调用、运行前已用、北京时间自然日累计、每日上限和被限额跳过数量；如果百度关闭、补充数量为 0 或每日上限为 0，明确写“百度省额度模式，本次不调用百度”。
 8. 检查其中的 Tier Rules 章节：按用户配置解释核心竞品、价格压力、品质压力和替代住宿，不要用默认经验覆盖配置。
 9. 检查其中的 History / Yesterday Comparison 章节：有同口径历史时判断涨价、降价、持平；没有历史时只做今日横截面分析。
 10. 读取 templates/daily-prompt.md。

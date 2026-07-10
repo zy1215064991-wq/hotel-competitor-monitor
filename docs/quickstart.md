@@ -112,6 +112,7 @@ app/index.html
 - 高德周边半径。
 - 候选池上限：先从高德拉多少附近酒店。
 - 需要监控的竞对数量：最终进入日报和历史对比的竞对数量。
+- 品牌加权关键词：只提高匹配品牌的候选评分，不额外发起品牌补漏搜索。
 - 最高价格和排序：用于从候选池收口最终竞对；默认“可比性优先”，价格缺失或脱敏时不会被直接删掉。
 - 百度口碑补充数量。
 - 百度缓存、缓存天数和每日调用上限。
@@ -197,6 +198,8 @@ data/setup-check-latest.md
 
 第一次正式运行时没有上一份同口径历史，日报只会做今日横截面。第二天开始，脚本会自动读取上一份同口径快照，输出涨价、降价、持平。
 
+正式报告里的 `Applied Query Scope` 会区分用户配置与价格源实际参数：入住/离店日期会传给 FlyAI；大床类映射为 `--hotel-bed-types king`，双床类映射为 `twin`；房间数、成人数和儿童数当前会标记为 `not-applied-by-flyai-cli`，不能声称价格已按人数筛选。
+
 ## 7. WorkBuddy 分析和推送
 
 让 WorkBuddy 读取：
@@ -204,7 +207,7 @@ data/setup-check-latest.md
 - `data/api-combo/api-combo-latest-report-input.md`
 - `templates/daily-prompt.md`
 
-生成日报后保存到 `reports/`，默认通过微信助理 ClawBot 推送。
+生成日报后保存到 `reports/`，再按 `config/hotel-monitor.json` 的 `pushMode` 只执行一种路径：`clawbot`、`wecom` 或 `none`。WorkBuddy Automation 官方可确认的通知开关是“推送到 WorkBuddy 小程序”；如果桌面端实际界面提供 ClawBot 入口，可以选择并以微信实收验证。
 
 每天 07:30 的 WorkBuddy Automation 设置见：
 

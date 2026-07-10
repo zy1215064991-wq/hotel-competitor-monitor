@@ -33,7 +33,8 @@ assert.match(setupDoc, /setx/, "文档应该给出 Windows 设置环境变量命
 assert.match(setupDoc, /测试推送/, "文档应该包含测试推送步骤");
 assert.match(setupDoc, /docs\/automation-setup\.md/, "推送文档应该链接 Automation 设置文档");
 assert.match(automationSetup, /最终回复|完整任务结果/, "Automation 文档应说明推送最终回复或完整任务结果");
-assert.match(automationSetup, /ClawBot 推送未配置/, "Automation 文档应说明未配置推送时不能伪造成功");
+assert.match(automationSetup, /ClawBot 尚未验证/, "Automation 文档应区分任务完成与 ClawBot 实际送达");
+assert.match(automationSetup, /不能伪造成功|不要把没有推送成功/, "Automation 文档应禁止伪造推送成功");
 
 assert.match(automationTemplate, /pushMode/, "自动化模板应该读取配置中的推送模式");
 assert.match(automationTemplate, /clawbot/, "自动化模板应该说明 ClawBot 分支");

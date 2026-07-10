@@ -41,11 +41,12 @@ if ($env:BAIDU_MAP_AK) { "BAIDU_MAP_AK 已配置" } else { "缺少 BAIDU_MAP_AK"
   "cacheEnabled": true,
   "cacheDirectory": "data/cache/baidu",
   "cacheTtlDays": 30,
+  "usageDirectory": "data/usage",
   "dailyCallLimit": 20
 }
 ```
 
-额度紧张时，把 `dailyCallLimit` 先设为 `0` 或 `5`。设为 `0` 时，脚本会跳过百度真实调用，正式运行 readiness 也不会要求 `BAIDU_MAP_AK`，但高德候选、FlyAI 价格、历史对比和日报输入仍能继续跑。
+`dailyCallLimit` 按北京时间自然日跨运行累计，账本默认保存在 `data/usage/YYYY-MM-DD.json`。额度紧张时，把它先设为 `0` 或 `5`。设为 `0` 时，脚本会跳过百度真实调用，正式运行 readiness 也不会要求 `BAIDU_MAP_AK`，但高德候选、FlyAI 价格、历史对比和日报输入仍能继续跑。
 
 ## 5. 查看本次用量
 
@@ -58,8 +59,10 @@ Select-String -Path .\data\api-combo\api-combo-latest-report-input.md -Pattern "
 重点看：
 
 - `CacheHits`：命中本地缓存，不消耗额度。
-- `ApiCallsUsed`：本次真实调用次数。
+- `ApiCallsUsedThisRun`：本次真实调用次数。
+- `DailyCallsUsedBefore`：本次运行前自然日已用次数。
+- `DailyCallsUsedTotal`：本次运行后的自然日累计次数。
 - `DailyCallLimit`：本地配置的每日上限。
 - `SkippedByLimit`：因为上限被跳过的候选。
 
-DryRun 不调用百度，也不消耗额度。
+DryRun 不调用百度，也不创建或修改额度账本。

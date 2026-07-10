@@ -199,8 +199,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\run-once.ps1 -Fo
 3. 如果 scripts/run-once.ps1 -Formal 停止，读取 data/run-once-latest.md 和 data/setup-check-latest.md，最终回复说明 BlockingIssues，不要继续生成日报，不要伪造数据或推送成功。
 4. 读取 data/run-once-latest.md，确认 FormalCollection: true 且 Status: ok。
 5. 读取 data/api-combo/api-combo-latest-report-input.md。
-6. 检查其中的 FlyAI Usage 章节：说明价格源成功、空结果、失败、脱敏价格和 DryRun 状态。
-7. 检查其中的 Baidu Usage 章节：说明百度缓存命中、真实 API 调用次数、每日上限和被限额跳过数量；如果百度关闭、补充数量为 0 或每日上限为 0，明确写“百度省额度模式，本次不调用百度”。
+6. 检查其中的 Applied Query Scope 和 FlyAI Usage：区分用户配置与实际传给价格源的日期、床型、房间数和住客数；说明成功、空结果、失败、身份错配、脱敏价格和 DryRun 状态。
+7. 检查其中的 Baidu Usage：说明百度缓存命中、本次真实调用、运行前已用、北京时间自然日累计、每日上限和被限额跳过数量；如果百度关闭、补充数量为 0 或每日上限为 0，明确写“百度省额度模式，本次不调用百度”。
 8. 检查其中的 Tier Rules 章节：按用户配置解释核心竞品、价格压力、品质压力和替代住宿，不要用默认经验覆盖配置。
 9. 检查其中的 History / Yesterday Comparison 章节：有同口径历史时判断涨价、降价、持平；没有历史时只做今日横截面分析。
 10. 读取 templates/daily-prompt.md。
@@ -240,6 +240,7 @@ function buildDailyPrompt() {
 - 本地历史库：同查询口径的上一份价格和口碑快照，用于判断涨价、降价、持平。
 - Tier Rules：用户配置的核心半径、价格压力阈值、品质评分阈值、品质半径和替代住宿策略。
 - Query：本次入住/离店日期、房型、房间数、成人数、儿童数、竞对数量、候选池上限和筛选排序。
+- Applied Query Scope：哪些口径已实际传给 FlyAI CLI，哪些字段只是经营口径记录。
 - SelectionBucket / SelectionScore / SelectionReason：脚本在最终收口前计算的可比性筛选依据，用来解释为什么某家进入最终名单。
 
 ## 分析规则
@@ -250,6 +251,8 @@ function buildDailyPrompt() {
 - 百度口碑只用于入围候选补充，不要求所有候选都有百度字段。
 - 必须说明百度口碑数据来自 API、缓存、DryRun 还是被限额跳过。
 - 如果价格是 ¥1xx、¥3x 这类脱敏价格，只能做价格带判断。
+- 脱敏价格不得计算精确差额、涨跌幅或价格比例，也不得参与精确跟价建议。
+- 房间数、成人数和儿童数若标记为 \`not-applied-by-flyai-cli\`，必须明确说明价格源未按这些字段筛选。
 - 优先读取 ## Yesterday Comparison。有同口径历史时，才判断“谁调价了”。
 - 没有昨日同口径数据时，不要判断调价方向，只判断今日价格压力。
 - 对降价先判断：清库存、抢团客、真降价、或数据不足，不要一看到降价就建议跟。
@@ -261,7 +264,9 @@ function buildDailyPrompt() {
 
 请严格按下面结构输出，不要写长篇背景：
 
-查询口径：入住[CheckIn]，离店[CheckOut]，[RoomType]，[Rooms]间，[Adults]成人，[Children]儿童，竞对数量[CompetitorCount]，排序[Sort]
+查询口径（用户配置）：入住[CheckIn]，离店[CheckOut]，[RoomType]，[Rooms]间，[Adults]成人，[Children]儿童，竞对数量[CompetitorCount]，排序[Sort]
+
+价格源实际应用：[Applied Query Scope 摘要]
 
 🔴 价格压力与今日风险
 

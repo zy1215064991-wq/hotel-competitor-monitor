@@ -36,7 +36,9 @@
 
 请严格按下面结构输出，不要写长篇背景：
 
-查询口径：入住[CheckIn]，离店[CheckOut]，[RoomType]，[Rooms]间，[Adults]成人，[Children]儿童，竞对数量[CompetitorCount]，排序[Sort]
+查询口径（用户配置）：入住[CheckIn]，离店[CheckOut]，[RoomType]，[Rooms]间，[Adults]成人，[Children]儿童，竞对数量[CompetitorCount]，排序[Sort]
+
+价格源实际应用：[Applied Query Scope 摘要]
 
 🔴 价格压力与今日风险
 

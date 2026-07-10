@@ -51,6 +51,7 @@ DryRun 只验证本地配置和输出链路，不调用真实 API。正式运行
   "cacheEnabled": true,
   "cacheDirectory": "data/cache/baidu",
   "cacheTtlDays": 30,
+  "usageDirectory": "data/usage",
   "dailyCallLimit": 0
 }
 ```
@@ -61,9 +62,11 @@ DryRun 只验证本地配置和输出链路，不调用真实 API。正式运行
 Select-String -Path .\data\api-combo\api-combo-latest-report-input.md -Pattern "## Baidu Usage" -Context 0,12
 ```
 
+`dailyCallLimit` 按北京时间自然日累计，同一天重新运行不会从 0 开始。账本在 `baidu.usageDirectory`，默认 `data/usage/YYYY-MM-DD.json`。不要通过删除账本绕过平台额度；需要重跑时应调低补充数量或等待下一自然日。
+
 ## 价格显示脱敏
 
-如果 FlyAI 返回 `¥1xx`、`¥3x` 这类价格，只能当作价格带信号。通常说明 Key、权限或返回字段不完整。不要把脱敏价格写成精确价格结论。
+如果 FlyAI 返回 `¥1xx`、`¥3x` 这类价格，只能当作价格带信号。通常说明 Key、权限或返回字段不完整。不要把脱敏价格写成精确价格结论；历史对比必须写“价格带不可精确比较”，不能计算差额、涨跌幅或价格比例。
 
 查看 FlyAI 价格源状态：
 
@@ -88,7 +91,7 @@ Select-String -Path .\data\api-combo\api-combo-latest-report-input.md -Pattern "
 - 缩小 `discovery.radiusMeters`。
 - 降低 `discovery.maxCandidates`。
 - 增加 `discovery.excludeNameKeywords`，例如停车场、大堂、写字楼、公寓、民宿。
-- 补充 `discovery.brandKeywords`，例如全季、汉庭、亚朵、智选假日。
+- 调整品牌加权 `discovery.brandKeywords`，例如全季、汉庭、亚朵、智选假日。它只影响已有候选评分，不会额外搜索新酒店。
 
 ## 分层不符合你的经营判断
 
@@ -128,6 +131,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-once.ps1 -Form
 ```
 
 如果被 readiness 拦住，先读 `data/run-once-latest.md` 和 `data/setup-check-latest.md`，按 `BlockingIssues` 处理。
+
+同时检查日报输入的 `## Applied Query Scope`。当前 FlyAI CLI 会接收入住/离店日期，并把大床类映射为 `--hotel-bed-types king`、双床类映射为 `twin`；房间数、成人数和儿童数会标记 `not-applied-by-flyai-cli`。这是价格源能力边界，不是向导没有保存配置。
 
 ## 日报说没有昨日同口径数据
 

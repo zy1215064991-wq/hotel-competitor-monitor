@@ -37,6 +37,8 @@ FlyAI/飞猪 -> 本店和候选酒店价格
 
 默认排序是 `balanced`，也就是可比性优先。它会给候选写入 `SelectionBucket`、`SelectionScore` 和 `SelectionReason`：标准酒店、档位接近、价格带可比、距离近、评分高、有精确价格会加分；公寓、民宿、酒店式公寓等替代住宿会保留为“替代观察”，但不会轻易挤占核心竞品名额。用户仍可手动切换到 `distance_asc`、`price_asc`、`rate_desc` 或 `no_rank`。
 
+`discovery.brandKeywords` 是品牌加权关键词：候选名称命中时参与可比性评分，但当前不会额外发起一轮品牌补漏搜索。候选池仍以高德本店坐标的周边检索为准。
+
 ## FlyAI/飞猪作为价格源
 
 FlyAI/飞猪适合查询入住日期下的价格信号：
@@ -44,6 +46,16 @@ FlyAI/飞猪适合查询入住日期下的价格信号：
 - 查询本店价格。
 - 查询候选竞品价格。
 - 返回酒店名、地址、坐标、品牌、档位、飞猪详情链接和价格。
+
+查询口径并不是所有字段都能传给当前 FlyAI CLI：
+
+- 入住和离店日期会实际传入。
+- 大床类房型映射为 `--hotel-bed-types king`，双床类映射为 `--hotel-bed-types twin`；无法识别时标记为 `unsupported`。
+- 房间数、成人数和儿童数只保留为经营口径和历史指纹，报告标记为 `not-applied-by-flyai-cli`。
+
+报告中的 `## Applied Query Scope` 是事实来源。模型必须区分“用户想查什么”和“价格源实际应用了什么”，不能声称价格已经按未应用的住客字段筛选。
+
+FlyAI 返回列表后还会做酒店身份匹配：规范化名称必须与高德候选严格兼容，才采用该项价格；不再默认取 `itemList[0]`。无法确认同一家酒店时标记 `identity-mismatch`，不写入价格。
 
 注意：FlyAI/飞猪价格只代表飞猪生态价格，不代表全 OTA 最低价。如果没有有效 Key，价格可能变成 `¥1xx`、`¥3x` 这种脱敏结果，只能作为价格带参考。
 
@@ -54,7 +66,7 @@ FlyAI/飞猪适合查询入住日期下的价格信号：
 - `ExternalCallsUsed`：真实 FlyAI 调用次数，DryRun 为 0。
 - `EmptyResults`、`Failed`、`MaskedPrices`：分别表示空结果、失败、脱敏价格数量。
 
-日报看到空结果、失败或脱敏价格时，不能当作精确价格判断。
+日报看到空结果、失败或脱敏价格时，不能当作精确价格判断。`¥1xx`、`¥3x` 等脱敏值不会转换成数字；历史任一侧为脱敏价时输出“价格带不可精确比较”，不计算差额、百分比或跟价比例。
 
 ## 百度作为口碑补充源
 
@@ -75,9 +87,10 @@ FlyAI/飞猪适合查询入住日期下的价格信号：
 - `baidu.cacheEnabled`：默认 `true`。
 - `baidu.cacheDirectory`：默认 `data/cache/baidu`。
 - `baidu.cacheTtlDays`：默认 30 天。
-- `baidu.dailyCallLimit`：默认每天最多 20 次真实百度 HTTP 调用。
+- `baidu.usageDirectory`：默认 `data/usage`，保存按北京时间自然日命名的额度账本。
+- `baidu.dailyCallLimit`：默认每个自然日最多 20 次真实百度 HTTP 调用，同一天多次运行累计计算，不会每次重置。
 
-命中缓存时不会调用百度 API。DryRun 不消耗真实百度额度。日报输入里的 `## Baidu Usage` 会显示缓存命中、真实调用次数和被限额跳过数量。
+每次真实搜索或详情调用前都会原子预占额度。命中缓存时不会调用百度 API；DryRun 不创建或修改额度账本。日报输入里的 `## Baidu Usage` 会显示本次调用、运行前已用、自然日累计和被限额跳过数量。
 
 ## 本地历史库用于昨日对比
 

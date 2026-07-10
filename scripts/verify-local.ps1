@@ -174,42 +174,12 @@ try {
     Add-Result -Step "secret scan" -Status "skipped" -Detail "Skipped by -SkipSecretScan."
   } else {
     Invoke-VerifyStep -Name "secret scan" -Action {
-    $pattern = "sk-[A-Za-z0-9]{10,}"
-    $excludeDirs = @(".git", "data", "reports", "ctrip-profile", "output", "node_modules", "dist", "work")
-    if (Get-Command "rg" -ErrorAction SilentlyContinue) {
-      $rgArgs = @("-n", $pattern, ".", "-S")
-      foreach ($dir in $excludeDirs) {
-        $rgArgs += "--glob"
-        $rgArgs += "!$dir/**"
-      }
-      $rgOutput = & rg @rgArgs 2>&1
-      $exitCode = $LASTEXITCODE
-      if ($exitCode -eq 0) {
-        $rgOutput | Out-Host
-        throw "Potential secret matched by rg."
-      }
-      if ($exitCode -gt 1) {
-        throw "rg secret scan failed with exit code $exitCode."
-      }
-      Write-Host "[ok] No sk-style secret found by rg."
-      return
+    $scanOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "scripts\scan-secrets.ps1") -RootPath $repoRoot 2>&1
+    $scanExitCode = $LASTEXITCODE
+    $scanOutput | Out-Host
+    if ($scanExitCode -ne 0) {
+      throw "Secret scan failed with exit code $scanExitCode."
     }
-
-    $files = Get-ChildItem -Path $repoRoot -Recurse -File | Where-Object {
-      $relative = [System.IO.Path]::GetRelativePath($repoRoot, $_.FullName)
-      foreach ($dir in $excludeDirs) {
-        if ($relative -eq $dir -or $relative.StartsWith("$dir\")) {
-          return $false
-        }
-      }
-      return $true
-    }
-    $matches = $files | Select-String -Pattern $pattern
-    if ($matches) {
-      $matches | ForEach-Object { Write-Host "$($_.Path):$($_.LineNumber): $($_.Line)" }
-      throw "Potential secret matched by Select-String."
-    }
-    Write-Host "[ok] No sk-style secret found by Select-String."
     }
   }
 } finally {

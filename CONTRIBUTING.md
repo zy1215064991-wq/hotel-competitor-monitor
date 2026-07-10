@@ -16,7 +16,7 @@ npm test
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1
 ```
 
-`verify-local.ps1` 只做安装体检、DryRun、本地测试和敏感信息扫描，不调用高德、FlyAI 或百度正式 API。
+`verify-local.ps1` 只做安装体检、DryRun、本地测试和敏感信息扫描，不调用高德、FlyAI 或百度正式 API。扫描器会检查 `sk-` 令牌、企业微信 webhook 和当前环境变量中的实际 Key，失败时只报文件、行号和类型，不回显秘密内容。
 
 ## 编辑器格式
 

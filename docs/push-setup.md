@@ -1,13 +1,23 @@
 # 推送设置：怎么让用户收到日报
 
-默认推荐：微信助理 ClawBot。
+向导默认选择微信助理 ClawBot，但首次必须以微信端实际收到消息为准。
 
-本项目支持两种推送路径：
+本项目由 `config/hotel-monitor.json` 的 `pushMode` 控制三种互斥路径，每次只执行对应的一条：
 
-- 个人微信：使用 WorkBuddy 自带的微信助理 ClawBot 绑定能力，在 WorkBuddy 桌面端图形界面里配置。
-- 企业微信群：使用企业微信群机器人 webhook，通过 `scripts/push-wecom.ps1` 自动发送 Markdown 日报。
+- `clawbot`：尝试通过已绑定的微信助理 ClawBot 接收结果；Automation 同时建议开启官方“推送到 WorkBuddy 小程序”作为可验证通知路径。
+- `wecom`：使用企业微信群机器人 webhook，通过 `scripts/push-wecom.ps1` 发送 Markdown 日报。
+- `none`：只保存本地 `reports/`，不调用 ClawBot 或企业微信。
 
-两种方式可以同时保留。向导默认选择微信助理 ClawBot；没有配置推送时，自动化仍会把日报保存到本地 `reports/`，并在最终回复里说明没有推送成功。
+可以同时准备多个渠道，但一次任务只按 `pushMode` 选择一个项目推送分支。无论选择哪种方式，日报都先保存到本地 `reports/`；没有收到或脚本失败时必须如实标记，不能伪造推送成功。
+
+## Automation 官方通知：WorkBuddy 小程序
+
+1. 在微信搜索并打开“腾讯 WorkBuddy”小程序。
+2. 按页面提示授权登录，确保微信账号与电脑端 WorkBuddy 登录账号一致。
+3. 在桌面端创建 Automation 时打开“推送到 WorkBuddy 小程序”。
+4. 手动测试运行一次，以小程序实际收到完整结果为成功依据。
+
+这是 WorkBuddy Automation 官方文档明确提供的通知开关。它是任务通知路径，不改变项目里的 `pushMode`：例如 `pushMode=wecom` 时，日报仍由脚本发到企业微信群。
 
 ## 方式一：微信助理 ClawBot
 
@@ -22,14 +32,14 @@
 5. 点击配置。
 6. 用微信扫码绑定。
 7. 等状态显示已连接或已绑定。
-8. 创建 Automation 时，在通知或推送方式里选择微信助理 ClawBot、微信或最终回复推送。
-9. 推送内容选择“最终回复”或“完整任务结果”。这样 `automation-prompt.md` 里的日报全文会被原样推送。
+8. 创建 Automation 时，如果当前界面确实提供微信助理 ClawBot 通知入口，再选择“最终回复”或“完整任务结果”。
+9. 手动测试运行一次，确认微信 ClawBot 实际收到日报全文。
 
 注意：
 
 - 这一步必须在 WorkBuddy 图形界面里完成。
 - 不要让自动化模拟微信登录。
-- 如果 WorkBuddy 版本没有 ClawBot 推送入口，就只使用企业微信群机器人方式。
+- Automation 是否能直接选择 ClawBot 以当前桌面端实际界面为准；如果没有该入口，保留 WorkBuddy 小程序通知，并将 ClawBot 标记为尚未验证，也可以把 `pushMode` 改成 `wecom` 或 `none`。
 - 如果没有绑定 ClawBot，自动化不能假装推送成功；它会保存本地报告，并在最终回复里提示你去绑定 ClawBot。
 
 ## 方式二：企业微信群机器人
@@ -103,12 +113,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\push-wecom.ps1 -Re
 
 详细的 Automation 创建步骤见 `docs/automation-setup.md`。
 
-Automation prompt 已经包含推送策略：
+Automation prompt 已经包含按 `pushMode` 三选一的推送策略：
 
 1. 先生成并保存 `reports/YYYY-MM-DD-hotel-competitor-daily.md`。
-2. 默认通过微信助理 ClawBot 推送日报全文。
-3. 如果选择企业微信群机器人，并且环境变量 `HOTEL_MONITOR_WECOM_WEBHOOK` 存在，运行 `scripts/push-wecom.ps1` 推送。
-4. 如果没有配置对应推送渠道，只在本地保存日报，并在最终回复里说明“推送未配置”。
+2. `clawbot`：尝试通过已绑定的微信助理发送，并以微信实收判断；若 Automation 只有小程序开关，则使用小程序并写明 ClawBot 尚未验证。
+3. `wecom`：环境变量 `HOTEL_MONITOR_WECOM_WEBHOOK` 存在时运行 `scripts/push-wecom.ps1`，失败就报告失败。
+4. `none`：只保存本地，不调用外部推送。
 
 ## 常见问题
 
@@ -141,4 +151,4 @@ https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=
 
 ### 能不能推个人微信
 
-个人微信不要走脚本和 webhook。个人微信请用 WorkBuddy 自带的微信助理 ClawBot 绑定能力，在图形界面扫码绑定。
+个人微信不要走脚本和 webhook。个人微信请用 WorkBuddy 自带的微信助理 ClawBot 绑定能力；具体绑定方式以当前图形界面提供的选项为准。定时任务建议同时开启“推送到 WorkBuddy 小程序”。

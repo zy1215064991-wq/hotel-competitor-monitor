@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const verifyScript = fs.readFileSync(path.join(repoRoot, "scripts", "verify-local.ps1"), "utf8");
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "hotel-monitor-verify-local-"));
 const configPath = path.join(tempDir, "hotel-monitor.json");
 const reportPath = path.join(tempDir, "verify-local.md");
@@ -13,6 +14,8 @@ const failedReportPath = path.join(tempDir, "verify-local-failed.md");
 const readText = (filePath) => fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
 
 fs.copyFileSync(path.join(repoRoot, "config", "hotel-monitor.example.json"), configPath);
+
+assert.match(verifyScript, /scan-secrets\.ps1/, "本地验收应调用独立的多类型密钥扫描脚本");
 
 try {
   const output = execFileSync(
