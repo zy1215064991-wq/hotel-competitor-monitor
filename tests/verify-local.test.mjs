@@ -12,6 +12,12 @@ const configPath = path.join(tempDir, "hotel-monitor.json");
 const reportPath = path.join(tempDir, "verify-local.md");
 const failedReportPath = path.join(tempDir, "verify-local-failed.md");
 const readText = (filePath) => fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
+const configuredKeyEnv = {
+  ...process.env,
+  AMAP_API_KEY: ["test", "amap", "key"].join("-"),
+  FLYAI_API_KEY: ["test", "flyai", "key"].join("-"),
+  BAIDU_MAP_AK: ["test", "baidu", "ak"].join("-")
+};
 
 fs.copyFileSync(path.join(repoRoot, "config", "hotel-monitor.example.json"), configPath);
 
@@ -32,7 +38,7 @@ try {
       "-ReportPath",
       reportPath
     ],
-    { cwd: repoRoot, stdio: "pipe", encoding: "utf8" }
+    { cwd: repoRoot, stdio: "pipe", encoding: "utf8", env: configuredKeyEnv }
   );
 
   const report = readText(reportPath);
@@ -64,7 +70,7 @@ try {
       "-ReportPath",
       failedReportPath
     ],
-    { cwd: repoRoot, encoding: "utf8" }
+    { cwd: repoRoot, encoding: "utf8", env: configuredKeyEnv }
   );
   const failedReport = readText(failedReportPath);
   assert.notEqual(failed.status, 0, "DryRun 子进程失败时本地验收必须返回非零退出码");

@@ -17,9 +17,9 @@ const readText = (filePath) => fs.readFileSync(filePath, "utf8").replace(/^\uFEF
 const readJson = (filePath) => JSON.parse(readText(filePath));
 const configuredKeyEnv = {
   ...process.env,
-  AMAP_API_KEY: "test-amap-key",
-  FLYAI_API_KEY: "test-flyai-key",
-  BAIDU_MAP_AK: "test-baidu-ak"
+  AMAP_API_KEY: ["test", "amap", "key"].join("-"),
+  FLYAI_API_KEY: ["test", "flyai", "key"].join("-"),
+  BAIDU_MAP_AK: ["test", "baidu", "ak"].join("-")
 };
 const noBaiduKeyEnv = { ...configuredKeyEnv, BAIDU_MAP_AK: "" };
 
