@@ -30,6 +30,7 @@
     "cacheEnabled": true,
     "cacheDirectory": "data/cache/baidu",
     "cacheTtlDays": 30,
+    "usageDirectory": "data/usage",
     "dailyCallLimit": 20
   },
   "flyai": {

@@ -20,6 +20,7 @@ config.baidu = {
   cacheEnabled: false,
   cacheDirectory: "data/cache/baidu",
   cacheTtlDays: 30,
+  usageDirectory: path.join(tempDir, "usage"),
   dailyCallLimit: 0
 };
 
@@ -57,7 +58,11 @@ try {
   assert.match(reportInput, /## Baidu Usage/, "报告输入应输出百度配额使用情况");
   assert.match(reportInput, /DailyCallLimit: 0/, "报告输入应记录百度每日调用上限");
   assert.match(reportInput, /ApiCallsUsed: 0/, "限额为 0 时不应消耗百度调用");
+  assert.match(reportInput, /ApiCallsUsedThisRun: 0/, "报告输入应区分本次调用数");
+  assert.match(reportInput, /DailyCallsUsedBefore: 0/, "报告输入应记录运行前当日累计");
+  assert.match(reportInput, /DailyCallsUsedTotal: 0/, "报告输入应记录运行后当日累计");
   assert.match(reportInput, /SkippedByLimit: [1-9]/, "限额为 0 时应记录被限额跳过的候选");
+  assert.equal(fs.existsSync(config.baidu.usageDirectory), false, "DryRun 不应创建正式百度额度账本");
 
   const firstCandidate = candidates[0];
   assert.equal(firstCandidate.baidu_source, "skipped-limit", "限额为 0 时候选应标记为被限额跳过");

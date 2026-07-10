@@ -383,9 +383,9 @@ if (-not ([bool]$formalRequirements.FlyAICommandRequired)) {
 }
 
 Write-Step "Create local output directories"
-New-Item -ItemType Directory -Force -Path (Join-Path $repoRoot "data\api-combo"), (Join-Path $repoRoot "data\cache\baidu"), (Join-Path $repoRoot "data\history"), (Join-Path $repoRoot "reports") | Out-Null
-Write-Host "[ok] data/api-combo, data/cache/baidu, data/history and reports directories are ready."
-Add-Check -Item "output directories" -Status "ok" -Detail "data/api-combo, data/cache/baidu, data/history and reports are ready." -NextAction "No action."
+New-Item -ItemType Directory -Force -Path (Join-Path $repoRoot "data\api-combo"), (Join-Path $repoRoot "data\cache\baidu"), (Join-Path $repoRoot "data\usage"), (Join-Path $repoRoot "data\history"), (Join-Path $repoRoot "reports") | Out-Null
+Write-Host "[ok] data/api-combo, data/cache/baidu, data/usage, data/history and reports directories are ready."
+Add-Check -Item "output directories" -Status "ok" -Detail "data/api-combo, data/cache/baidu, data/usage, data/history and reports are ready." -NextAction "No action."
 
 Write-Step "Write zero-quota setup report"
 Write-StatusReport -Path $targetStatusReport

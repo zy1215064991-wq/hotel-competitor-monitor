@@ -135,6 +135,7 @@ try {
   assert.equal(repairedConfig.homeHotelName, "测试本店", "修复配置不能覆盖本店名称");
   assert.equal(repairedConfig.query.roomType, "双床房", "修复配置不能覆盖查询口径");
   assert.equal(repairedConfig.baidu.cacheDirectory, "data/cache/baidu", "修复配置应补齐百度配置");
+  assert.equal(repairedConfig.baidu.usageDirectory, "data/usage", "修复配置应补齐百度每日额度账本目录");
   assert.equal(repairedConfig.flyai.requestDelayMs, 800, "修复配置应补齐 FlyAI 配置");
   assert.equal(repairedConfig.tierRules.pricePressureRatio, 0.75, "修复配置应补齐分层规则");
   assert.equal(repairedConfig.history.directory, "data/history", "修复配置应补齐历史配置");

@@ -382,6 +382,7 @@ function Get-BaiduSettings {
     cacheEnabled = [bool](Get-BaiduSetting -Config $Config -Name "cacheEnabled" -Default $true)
     cacheDirectory = [string](Get-BaiduSetting -Config $Config -Name "cacheDirectory" -Default "data/cache/baidu")
     cacheTtlDays = [int](Get-BaiduSetting -Config $Config -Name "cacheTtlDays" -Default 30)
+    usageDirectory = [string](Get-BaiduSetting -Config $Config -Name "usageDirectory" -Default "data/usage")
     dailyCallLimit = [int](Get-BaiduSetting -Config $Config -Name "dailyCallLimit" -Default 20)
   }
 }
@@ -396,6 +397,19 @@ function Get-BaiduCacheRoot {
   $directory = [string]$Settings.cacheDirectory
   if ([System.IO.Path]::IsPathRooted($directory)) { return $directory }
   return Join-Path $repoRoot $directory
+}
+
+function Get-BaiduUsageRoot {
+  param([System.Collections.IDictionary]$Settings)
+  $directory = [string]$Settings.usageDirectory
+  if ([System.IO.Path]::IsPathRooted($directory)) { return $directory }
+  return Join-Path $repoRoot $directory
+}
+
+function Get-BaiduUsagePath {
+  param([System.Collections.IDictionary]$Settings)
+  $root = Get-BaiduUsageRoot -Settings $Settings
+  return Join-Path $root ("baidu-{0}.json" -f (Get-Date -Format "yyyy-MM-dd"))
 }
 
 function Get-Sha256Hex {
@@ -448,6 +462,8 @@ function Write-BaiduCacheEntry {
 
 function New-BaiduStats {
   param([System.Collections.IDictionary]$Settings)
+  $usagePath = Get-BaiduUsagePath -Settings $Settings
+  $dailyBefore = if ($DryRun) { 0 } else { [int](Get-HotelMonitorDailyUsage -UsagePath $usagePath).Count }
   return [ordered]@{
     Enabled = [bool]$Settings.enabled
     CacheEnabled = [bool]$Settings.cacheEnabled
@@ -455,7 +471,12 @@ function New-BaiduStats {
     CacheTtlDays = [int]$Settings.cacheTtlDays
     EnrichTopN = [int]$Settings.enrichTopN
     DailyCallLimit = [int]$Settings.dailyCallLimit
+    UsageDirectory = [string]$Settings.usageDirectory
+    UsagePath = $usagePath
     ApiCallsUsed = 0
+    ApiCallsUsedThisRun = 0
+    DailyCallsUsedBefore = $dailyBefore
+    DailyCallsUsedTotal = $dailyBefore
     CacheHits = 0
     CacheMisses = 0
     SkippedByLimit = 0
@@ -467,14 +488,21 @@ function Test-BaiduCallAllowed {
   param([System.Collections.IDictionary]$Stats)
   $limit = [int]$Stats.DailyCallLimit
   if ($limit -lt 0) { return $true }
-  return ([int]$Stats.ApiCallsUsed -lt $limit)
+  if ($DryRun) {
+    return ($limit -gt 0)
+  }
+  return ([int]$Stats.DailyCallsUsedTotal -lt $limit)
 }
 
 function Add-BaiduApiCall {
   param([System.Collections.IDictionary]$Stats)
-  if (-not $DryRun) {
-    $Stats.ApiCallsUsed = [int]$Stats.ApiCallsUsed + 1
-  }
+  if ($DryRun) { return $true }
+  $reservation = Reserve-HotelMonitorDailyUsage -UsagePath ([string]$Stats.UsagePath) -Limit ([int]$Stats.DailyCallLimit)
+  if (-not [bool]$reservation.Allowed) { return $false }
+  $Stats.ApiCallsUsed = [int]$Stats.ApiCallsUsed + 1
+  $Stats.ApiCallsUsedThisRun = [int]$Stats.ApiCallsUsedThisRun + 1
+  $Stats.DailyCallsUsedTotal = [int]$reservation.CountAfter
+  return $true
 }
 
 function Normalize-HotelName {
@@ -582,15 +610,22 @@ function Invoke-BaiduEnrichment {
   $safeName = ($Candidate.hotel_name -replace "[^a-zA-Z0-9_-]", "_").Trim("_")
   if (-not $safeName) { $safeName = "candidate" }
 
-  Add-BaiduApiCall -Stats $Stats
+  if (-not (Add-BaiduApiCall -Stats $Stats)) {
+    $Candidate.baidu_source = "skipped-limit"
+    $Stats.SkippedByLimit = [int]$Stats.SkippedByLimit + 1
+    return
+  }
   $search = Invoke-BaiduSearch -Config $Config -Ak $Ak -Candidate $Candidate -OutputPath (Join-Path $OutputDir "baidu-search-$safeName.json")
   $baiduResult = Get-BaiduHotelResult -SearchResult $search -CandidateName $Candidate.hotel_name
   $uid = if ($null -ne $baiduResult) { [string]$baiduResult.uid } else { "" }
   $detail = $null
   if ($uid) {
     if (Test-BaiduCallAllowed -Stats $Stats) {
-      Add-BaiduApiCall -Stats $Stats
-      $detail = Invoke-BaiduDetail -Ak $Ak -Uid $uid -OutputPath (Join-Path $OutputDir "baidu-detail-$safeName.json")
+      if (Add-BaiduApiCall -Stats $Stats) {
+        $detail = Invoke-BaiduDetail -Ak $Ak -Uid $uid -OutputPath (Join-Path $OutputDir "baidu-detail-$safeName.json")
+      } else {
+        $Stats.SkippedByLimit = [int]$Stats.SkippedByLimit + 1
+      }
     } else {
       $Stats.SkippedByLimit = [int]$Stats.SkippedByLimit + 1
     }
@@ -1163,9 +1198,14 @@ function Write-ReportInput {
     "- CacheEnabled: $($BaiduStats.CacheEnabled)",
     "- CacheDirectory: $($BaiduStats.CacheDirectory)",
     "- CacheTtlDays: $($BaiduStats.CacheTtlDays)",
+    "- UsageDirectory: $($BaiduStats.UsageDirectory)",
+    "- UsagePath: $($BaiduStats.UsagePath)",
     "- EnrichTopN: $($BaiduStats.EnrichTopN)",
     "- DailyCallLimit: $($BaiduStats.DailyCallLimit)",
     "- ApiCallsUsed: $($BaiduStats.ApiCallsUsed)",
+    "- ApiCallsUsedThisRun: $($BaiduStats.ApiCallsUsedThisRun)",
+    "- DailyCallsUsedBefore: $($BaiduStats.DailyCallsUsedBefore)",
+    "- DailyCallsUsedTotal: $($BaiduStats.DailyCallsUsedTotal)",
     "- CacheHits: $($BaiduStats.CacheHits)",
     "- CacheMisses: $($BaiduStats.CacheMisses)",
     "- SkippedByLimit: $($BaiduStats.SkippedByLimit)",

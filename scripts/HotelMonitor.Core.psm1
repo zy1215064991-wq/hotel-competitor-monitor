@@ -94,6 +94,51 @@ function Compare-HotelMonitorPrice {
   return [ordered]@{ Trend = $trend; Delta = $delta; DeltaPct = "$pct%" }
 }
 
+function Get-HotelMonitorDailyUsage {
+  param([string]$UsagePath)
+
+  if (-not (Test-Path -LiteralPath $UsagePath)) {
+    return [ordered]@{ Count = 0; Path = $UsagePath }
+  }
+  $entry = [System.IO.File]::ReadAllText($UsagePath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+  $count = if ($null -ne $entry.count) { [int]$entry.count } else { 0 }
+  return [ordered]@{ Count = $count; Path = $UsagePath }
+}
+
+function Reserve-HotelMonitorDailyUsage {
+  param(
+    [string]$UsagePath,
+    [int]$Limit
+  )
+
+  $current = Get-HotelMonitorDailyUsage -UsagePath $UsagePath
+  $before = [int]$current.Count
+  if ($Limit -ge 0 -and $before -ge $Limit) {
+    return [ordered]@{ Allowed = $false; CountBefore = $before; CountAfter = $before; Path = $UsagePath }
+  }
+
+  $directory = Split-Path -Parent $UsagePath
+  if ($directory) {
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+  }
+  $after = $before + 1
+  $entry = [ordered]@{
+    count = $after
+    updatedAt = (Get-Date -Format s)
+  }
+  $tempPath = "$UsagePath.tmp-$PID-$([guid]::NewGuid().ToString('N'))"
+  try {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($tempPath, ($entry | ConvertTo-Json -Depth 5), $utf8NoBom)
+    Move-Item -LiteralPath $tempPath -Destination $UsagePath -Force
+  } finally {
+    if (Test-Path -LiteralPath $tempPath) {
+      Remove-Item -LiteralPath $tempPath -Force
+    }
+  }
+  return [ordered]@{ Allowed = $true; CountBefore = $before; CountAfter = $after; Path = $UsagePath }
+}
+
 function Select-HotelMonitorFlyAIItem {
   param(
     [object]$Result,
@@ -124,5 +169,7 @@ Export-ModuleMember -Function @(
   "Test-HotelMonitorMaskedPrice",
   "Get-HotelMonitorPriceNumber",
   "Compare-HotelMonitorPrice",
+  "Get-HotelMonitorDailyUsage",
+  "Reserve-HotelMonitorDailyUsage",
   "Select-HotelMonitorFlyAIItem"
 )
